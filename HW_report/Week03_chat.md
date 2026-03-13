@@ -24,3 +24,10 @@ navbar的style好像跑掉了，最初那種比較好。
 2. 側邊欄固定：側邊欄原本就使用了 flex-direction: column。透過對 sidebar h2 和 .daily-word-widget 設定 flex-shrink: 0，確保它們在空間不足時不會被壓縮，從而達到「固定」在頂部和底部的效果。中間的 sidebar ul 已設定 flex-grow: 1 與 overflow-y: auto，因此只有連結清單會滾動。
 
 3. 主內容區域（Todo-list）調整：將 .main-content 轉為 display: flex 並設定為垂直排列（column）。移除 .main-content 的滾動屬性，改為將 overflow-y: auto 套用在 #taskList 上。這樣一來，頂部的標題（h1）與輸入框（.input-area）會固定在原位，只有下方的清單會獨立滾動。
+
+
+# 涂家赫
+無
+
+# 林紹宇
+無
