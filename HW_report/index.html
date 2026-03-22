@@ -31,68 +31,151 @@
         </aside>
         <main class="main-content">
             <h1>To-Do List</h1>
+            <div class="daily-tasks-section">
+                <h2>每日固定任務</h2>
+                <div class="daily-input-area">
+                    <input type="text" id="dailyTaskInput" placeholder="Add a daily task...">
+                    <button id="addDailyButton">Add</button>
+                </div>
+                <ul id="dailyTaskList">
+                </ul>
+            </div>
             <div class="input-area">
                 <input type="text" id="taskInput" placeholder="Add a new task...">
                 <button id="addButton">Add</button>
             </div>
             <ul id="taskList">
-                <li>
-                    <input type="checkbox" id="task-1">
-                    <label for="task-1">This is a sample task</label>
-                    <button class="delete-button">X</button>
-                </li>
-                 <li>
-                    <input type="checkbox" id="task-2">
-                    <label for="task-2">Review design mockups</label>
-                    <button class="delete-button">X</button>
-                </li>
-                 <li>
-                    <input type="checkbox" id="task-3">
-                    <label for="task-3">Prepare for team meeting</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-4">
-                    <label for="task-4">Another task item</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-5">
-                    <label for="task-5">Yet another task</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-6">
-                    <label for="task-6">A sixth task</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-7">
-                    <label for="task-7">Task number seven</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-8">
-                    <label for="task-8">The eighth task</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-9">
-                    <label for="task-9">Number nine</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-10">
-                    <label for="task-10">Task ten</label>
-                    <button class="delete-button">X</button>
-                </li>
-                <li>
-                    <input type="checkbox" id="task-11">
-                    <label for="task-11">The final task</label>
-                    <button class="delete-button">X</button>
-                </li>
             </ul>
         </main>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskInput = document.getElementById('taskInput');
+            const addButton = document.getElementById('addButton');
+            const taskList = document.getElementById('taskList');
+            const dailyTaskInput = document.getElementById('dailyTaskInput');
+            const addDailyButton = document.getElementById('addDailyButton');
+            const dailyTaskList = document.getElementById('dailyTaskList');
+
+            // Load tasks from localStorage
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+            // Load daily tasks
+            let dailyTasks = JSON.parse(localStorage.getItem('dailyTasks'));
+
+            // Render tasks
+            function renderTasks() {
+                taskList.innerHTML = '';
+                tasks.forEach((task, index) => {
+                    const li = document.createElement('li');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `task-${index}`;
+                    checkbox.checked = task.completed;
+                    checkbox.addEventListener('change', () => {
+                        task.completed = checkbox.checked;
+                        saveTasks();
+                    });
+                    const label = document.createElement('label');
+                    label.htmlFor = `task-${index}`;
+                    label.textContent = task.text;
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'delete-button';
+                    deleteButton.textContent = 'X';
+                    deleteButton.addEventListener('click', () => {
+                        tasks.splice(index, 1);
+                        saveTasks();
+                        renderTasks();
+                    });
+                    li.appendChild(checkbox);
+                    li.appendChild(label);
+                    li.appendChild(deleteButton);
+                    taskList.appendChild(li);
+                });
+            }
+
+            // Render daily tasks
+            function renderDailyTasks() {
+                dailyTaskList.innerHTML = '';
+                dailyTasks.forEach((task, index) => {
+                    const li = document.createElement('li');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `daily-${index}`;
+                    checkbox.checked = task.completed;
+                    checkbox.addEventListener('change', () => {
+                        task.completed = checkbox.checked;
+                        saveDailyTasks();
+                    });
+                    const label = document.createElement('label');
+                    label.htmlFor = `daily-${index}`;
+                    label.textContent = task.text;
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'delete-button';
+                    deleteButton.textContent = 'X';
+                    deleteButton.addEventListener('click', () => {
+                        dailyTasks.splice(index, 1);
+                        saveDailyTasks();
+                        renderDailyTasks();
+                    });
+                    li.appendChild(checkbox);
+                    li.appendChild(label);
+                    li.appendChild(deleteButton);
+                    dailyTaskList.appendChild(li);
+                });
+            }
+
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+
+            function saveDailyTasks() {
+                localStorage.setItem('dailyTasks', JSON.stringify(dailyTasks));
+            }
+
+            // Add new task
+            addButton.addEventListener('click', function() {
+                const text = taskInput.value.trim();
+                if (text) {
+                    tasks.push({ text, completed: false });
+                    taskInput.value = '';
+                    saveTasks();
+                    renderTasks();
+                }
+            });
+
+            // Add new daily task
+            addDailyButton.addEventListener('click', function() {
+                const text = dailyTaskInput.value.trim();
+                if (text) {
+                    dailyTasks.push({ text, completed: false });
+                    dailyTaskInput.value = '';
+                    saveDailyTasks();
+                    renderDailyTasks();
+                }
+            });
+
+            // Schedule reset at 12pm for regular tasks only
+            function checkTime() {
+                const now = new Date();
+                if (now.getHours() === 12 && now.getMinutes() === 0) {
+                    tasks.forEach(task => {
+                        if (task.completed) {
+                            task.completed = false;
+                        }
+                    });
+                    saveTasks();
+                    renderTasks();
+                }
+            }
+
+            // Check every minute
+            setInterval(checkTime, 60000);
+
+            // Initial render
+            renderTasks();
+            renderDailyTasks();
+        });
+    </script>
 </body>
 </html>
