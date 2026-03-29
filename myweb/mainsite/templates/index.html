@@ -1,0 +1,95 @@
+{% load static humanize %} <!DOCTYPE html>
+<html>
+<head>
+    <title>To-Do List</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'index_style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Forum&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo"><a href="{% url 'project_page' %}">My To-Do</a></div>
+        <div class="nav-links">
+            <a href="{% url 'project_page' %}">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </div>
+    </nav>
+    <div class="app-container">
+        <aside class="sidebar">
+            <h2>Workspace</h2>
+            <ul>
+                <li><a href="{% url 'project_page' %}" class="{% if page == 'project' %}active{% endif %}">專案</a></li>
+                <li><a href="{% url 'task_list' %}" class="{% if page == 'task' %}active{% endif %}">任務</a></li>
+                <li><a href="{% url 'meeting_list' %}" class="{% if page == 'meeting' %}active{% endif %}">會議</a></li>
+            </ul>
+            <div class="daily-word-widget">
+                <h3>Daily Word</h3>
+                <p>API placeholder</p>
+            </div>
+        </aside>
+        <main class="main-content">
+            <div class="page-title" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                <img src="{% static 'logo.png' %}" alt="Logo" style="width:48px;height:48px;object-fit:contain;">
+                <h1>To-Do List</h1>
+            </div>
+            <div class="daily-tasks-section">
+                <h2>每日固定任務</h2>
+                <form method="post" class="daily-input-area">
+                    {% csrf_token %}
+                    <input type="text" name="content" id="dailyTaskInput" placeholder="Add a daily task..." required>
+                    <input type="hidden" name="type" value="daily">
+                    <input type="hidden" name="action" value="add">
+                    <button type="submit" id="addDailyButton">Add</button>
+                </form>
+                <ul id="dailyTaskList">
+                    {% for task in daily_tasks %}
+                    <li>
+                        <form method="post" class="task-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="task_id" value="{{ task.id }}">
+                            <button type="submit" name="action" value="toggle" class="toggle-button">
+                                {% if task.completed %}✔{% else %}☐{% endif %}
+                            </button>
+                            <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
+                            <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                            <button type="submit" name="action" value="delete" class="delete-button">X</button>
+                        </form>
+                    </li>
+                    {% empty %}
+                    <li class="empty-message">目前沒有每日任務</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="input-area">
+                <form method="post" class="task-input-form">
+                    {% csrf_token %}
+                    <input type="text" name="content" id="taskInput" placeholder="Add a new task..." required>
+                    <input type="hidden" name="type" value="normal">
+                    <input type="hidden" name="action" value="add">
+                    <button type="submit" id="addButton">Add</button>
+                </form>
+            </div>
+            <ul id="taskList">
+                {% for task in tasks %}
+                <li>
+                    <form method="post" class="task-action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="task_id" value="{{ task.id }}">
+                        <button type="submit" name="action" value="toggle" class="toggle-button">
+                            {% if task.completed %}✔{% else %}☐{% endif %}
+                        </button>
+                        <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
+                        <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                        <button type="submit" name="action" value="delete" class="delete-button">X</button>
+                    </form>
+                </li>
+                {% empty %}
+                <li class="empty-message">目前沒有任務</li>
+                {% endfor %}
+            </ul>
+        </main>
+    </div>
+</body>
+</html>
