@@ -430,3 +430,99 @@ input[type="checkbox"]:checked + label {
     opacity: 1;
     color: #984B43;
 }
+
+/* Dashboard Styles */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #D3C5AA;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: #984B43;
+}
+
+.stat-card h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    color: #7a7169;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+}
+
+.stat-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #984B43;
+    margin: 0;
+}
+
+/* Progress Bar */
+.progress-section {
+    background: rgba(152, 75, 67, 0.05);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #E0A96D;
+    margin-bottom: 2.5rem;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-header h3 {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    color: #984B43;
+}
+
+.progress-percentage {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #984B43;
+}
+
+.progress-container {
+    width: 100%;
+    height: 18px;
+    background: #D3C5AA;
+    border-radius: 9px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #984B43, #E0A96D);
+    width: 0; /* Fallback */
+    animation: fill-up 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fill-up {
+    from { width: 0; }
+    to { width: var(--progress-width, 100%); }
+}
+
+.recent-activity h3 {
+    font-family: 'Cinzel', serif;
+    color: #984B43;
+    border-bottom: 2px solid #D3C5AA;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+

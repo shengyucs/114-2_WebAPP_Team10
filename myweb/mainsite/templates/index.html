@@ -32,8 +32,56 @@
         <main class="main-content">
             <div class="page-title" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
                 <img src="{% static 'logo.png' %}" alt="Logo" style="width:48px;height:48px;object-fit:contain;">
-                <h1>To-Do List</h1>
+                <h1>{{ page_title|default:"To-Do List" }}</h1>
             </div>
+            
+            {% if page == 'project' %}
+            <div class="progress-section">
+                <div class="progress-header">
+                    <h3>整體進度</h3>
+                    <div class="progress-percentage">{{ stats.percentage }}%</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="--progress-width: {{ stats.percentage }}%;"></div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <h3>全部任務</h3>
+                    <p class="stat-value">{{ stats.total }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>已完成</h3>
+                    <p class="stat-value" style="color: #2e7d32;">{{ stats.completed }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>待辦中</h3>
+                    <p class="stat-value" style="color: #d32f2f;">{{ stats.pending }}</p>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <h3>近期任務狀態</h3>
+                <ul id="taskList">
+                    {% for task in tasks|slice:":5" %}
+                    <li>
+                        <form method="post" class="task-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="task_id" value="{{ task.id }}">
+                            <button type="submit" name="action" value="toggle" class="toggle-button">
+                                {% if task.completed %}✔{% else %}☐{% endif %}
+                            </button>
+                            <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
+                            <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if page == 'task' %}
             <div class="daily-tasks-section">
                 <h2>每日固定任務</h2>
                 <form method="post" class="daily-input-area">
@@ -89,6 +137,36 @@
                 <li class="empty-message">目前沒有任務</li>
                 {% endfor %}
             </ul>
+            {% endif %}
+
+            {% if page == 'meeting' %}
+            <div class="input-area">
+                <form method="post" class="task-input-form">
+                    {% csrf_token %}
+                    <input type="text" name="content" id="meetingInput" placeholder="Add a new meeting..." required>
+                    <input type="hidden" name="action" value="add">
+                    <button type="submit" id="addMeetingButton">Add</button>
+                </form>
+            </div>
+            <ul id="taskList">
+                {% for meeting in meetings %}
+                <li>
+                    <form method="post" class="task-action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="task_id" value="{{ meeting.id }}">
+                        <button type="submit" name="action" value="toggle" class="toggle-button">
+                            {% if meeting.completed %}✔{% else %}☐{% endif %}
+                        </button>
+                        <span class="{% if meeting.completed %}completed{% endif %}">{{ meeting.text }}</span>
+                        <small class="task-time">{{ meeting.created_at|timesince }} 前</small>
+                        <button type="submit" name="action" value="delete" class="delete-button">X</button>
+                    </form>
+                </li>
+                {% empty %}
+                <li class="empty-message">目前沒有會議記錄</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </main>
     </div>
 </body>

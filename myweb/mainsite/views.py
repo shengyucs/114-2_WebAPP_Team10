@@ -30,12 +30,28 @@ def project_page(request):
 
     tasks = Task.objects.filter(is_daily=False).order_by('-created_at')
     daily_tasks = Task.objects.filter(is_daily=True).order_by('-created_at')
+    
+    # Calculate statistics
+    all_tasks = Task.objects.all()
+    total_count = all_tasks.count()
+    completed_count = all_tasks.filter(completed=True).count()
+    pending_count = total_count - completed_count
+    
+    progress_percentage = 0
+    if total_count > 0:
+        progress_percentage = int((completed_count / total_count) * 100)
 
     return render(request, 'index.html', {
         'page': 'project',
-        'page_title': '專案',
+        'page_title': '專案總覽',
         'tasks': tasks,
         'daily_tasks': daily_tasks,
+        'stats': {
+            'total': total_count,
+            'completed': completed_count,
+            'pending': pending_count,
+            'percentage': progress_percentage,
+        }
     })
 
 
