@@ -10,3 +10,44 @@
 「專案」：專注於整體的進度視覺化與統計。
 「任務」：專注於任務的輸入與清單管理。
 
+---
+
+加入一個和網頁主題相關功能，展示django專案的網址委派和參數傳遞。
+
+為了展示 Django 的網址委派 (URL Delegation) 與參數傳遞 (Parameter Passing)，我提議實作一個「任務詳情與管理 (Task Detail)」功能。
+
+實作內容摘要：
+網址委派 (URL Delegation)：
+將原本位於專案層級（myweb/urls.py）的路由委派給應用層級（新增 mainsite/urls.py），使用 include() 達成模組化管理。
+參數傳遞 (Parameter Passing)：
+新增跳轉網址：task/<int:task_id>/。
+透過 URL 將特定任務的 ID 傳遞給後端 View，並根據 ID 從資料庫撈取該任務的詳細資訊（如建立的完整時間、狀態、內容等）。
+UI 整合：
+在任務清單旁加入一個「🔍 詳情」按鈕。
+設計一個獨立的 detail.html 頁面顯示詳細內容，並提供「返回首頁」的功能。
+
+---
+
+加入一個和網頁主題相關功能，展示django專案的GET和POST。
+
+我提議實作「任務搜尋 (GET)」與「內容編輯 (POST)」功能，以展示 Django 處理這兩者請求的差異。
+
+GET 請求展示（任務搜尋）：
+
+在任務清單上方加入一個搜尋框，使用 method="get"。
+在 URL 中傳遞參數（如 ?q=關鍵字）。
+後端透過 request.GET.get('q') 讀取關鍵字，並動態過濾任務清單。
+POST 請求展示（內容編輯）：
+
+在先前建立的 detail.html 任務詳情頁中，加入一個編輯表單，使用 method="post"。
+在表單中包含 {% csrf_token %} 進行安全驗證。
+後端透過 request.POST.get('content') 讀取新內容，更新資料庫，並完成跳轉。
+
+核心對比：
+
+這兩個功能可以清楚展示：GET 用於資料的查詢與過濾（參數在網址列）；POST 用於修改資料庫狀態（資料在 Request Body 中）。
+
+我已經建立了 
+實作計畫
+，請您查看。
+

@@ -34,6 +34,21 @@
                 <img src="{% static 'logo.png' %}" alt="Logo" style="width:48px;height:48px;object-fit:contain;">
                 <h1>{{ page_title|default:"To-Do List" }}</h1>
             </div>
+
+            <!-- GET Method Demonstration: Search Form -->
+            <div class="search-area" style="margin-bottom: 2rem;">
+                <form method="get" action="" style="display: flex; gap: 10px;">
+                    <input type="text" name="q" placeholder="Search tasks..." value="{{ request.GET.q|default:'' }}" 
+                           style="flex-grow: 1; border-radius: 8px; border: 1px solid #D3C5AA; padding: 10px;">
+                    <button type="submit" style="border-radius: 8px;">搜尋</button>
+                    {% if request.GET.q %}
+                        <a href="?" class="btn" style="text-decoration: none; padding: 10px; color: #984B43; font-family: 'Cinzel', serif;">清除</a>
+                    {% endif %}
+                </form>
+                {% if request.GET.q %}
+                    <p style="margin-top: 10px; color: #7a7169;">搜尋結果為：<strong>「{{ request.GET.q }}」</strong> (共 {{ total_count|default:stats.total }} 筆)</p>
+                {% endif %}
+            </div>
             
             {% if page == 'project' %}
             <div class="progress-section">
@@ -74,6 +89,7 @@
                             </button>
                             <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
                             <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                            <a href="{% url 'task_detail' task.id %}" class="detail-link" title="查看詳情">🔍</a>
                         </form>
                     </li>
                     {% endfor %}
@@ -102,6 +118,7 @@
                             </button>
                             <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
                             <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                            <a href="{% url 'task_detail' task.id %}" class="detail-link" title="查看詳情">🔍</a>
                             <button type="submit" name="action" value="delete" class="delete-button">X</button>
                         </form>
                     </li>
@@ -130,6 +147,7 @@
                         </button>
                         <span class="{% if task.completed %}completed{% endif %}">{{ task.text }}</span>
                         <small class="task-time">{{ task.created_at|timesince }} 前</small>
+                        <a href="{% url 'task_detail' task.id %}" class="detail-link" title="查看詳情">🔍</a>
                         <button type="submit" name="action" value="delete" class="delete-button">X</button>
                     </form>
                 </li>
