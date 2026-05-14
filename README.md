@@ -68,7 +68,9 @@ npm run docker:dev
 ├── backend/                # 後端專案 (Node.js + Express)
 ├── shared/                 # 前後端共用型別 (TypeScript Interfaces)
 ├── scripts/                # 自動化開發腳本
-└── docker-compose.yml      # Docker 配置 (MongoDB)
+├── ai_docs/                # AI Agent 專用技術文件
+├── AI_AGENT.md             # AI Agent 全局開發導引
+└── docker-compose.yml      # Docker 配置 (MongoDB, Frontend, Backend)
 ```
 
 ---

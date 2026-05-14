@@ -105,7 +105,10 @@ if (!fs.existsSync(backendEnvDocker)) {
 }
 
 console.log(
-  `\n${colors.cyan}💡 Tip: If you plan to use Docker only, you can ignore missing local node_modules.${colors.reset}`,
+  `\n${colors.cyan}💡 Tip: If you plan to use 'Full Docker Mode', you can ignore missing local node_modules.${colors.reset}`,
+);
+console.log(
+  `${colors.cyan}    However, local node_modules are recommended for IDE Intellisense and Linting.${colors.reset}`,
 );
 
 console.log('\n---------------------------------------');
