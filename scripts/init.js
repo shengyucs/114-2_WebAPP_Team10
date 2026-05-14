@@ -59,6 +59,18 @@ if (!fs.existsSync(backendEnvPath)) {
   }
 }
 
+// 2.1 Setup Backend .env.docker
+const backendEnvDockerPath = path.join(rootDir, 'backend', '.env.docker');
+if (!fs.existsSync(backendEnvDockerPath)) {
+  console.log(
+    `\n${colors.cyan}📄 Setting up backend/.env.docker...${colors.reset}`,
+  );
+  const dockerEnv =
+    'PORT=5000\nMONGODB_URI=mongodb://mongodb:27017/status-calculator\nNODE_ENV=development';
+  fs.writeFileSync(backendEnvDockerPath, dockerEnv);
+  console.log(`${colors.green}   ✅ Created for Docker stack${colors.reset}`);
+}
+
 // 3. Setup Frontend .env (Optional but good practice)
 const frontendEnvPath = path.join(rootDir, 'frontend', '.env');
 if (!fs.existsSync(frontendEnvPath)) {

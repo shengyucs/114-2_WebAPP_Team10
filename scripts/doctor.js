@@ -62,16 +62,15 @@ checkCommand('Node.js', 'node -v');
 checkCommand('NPM', 'npm -v');
 checkCommand('Git', 'git --version');
 checkCommand('Docker', 'docker --version');
-checkCommand(
-  'Docker Compose',
-  'docker-compose --version',
-  'docker compose version',
-);
+checkCommand('Docker Compose', 'docker compose version');
+checkCommand('Vitest', 'npx vitest -v');
 
 // 2. Project Structure Checks
 console.log(`\n${colors.white}--- Project Structure ---${colors.reset}`);
 checkPath('Frontend Dir', 'frontend');
 checkPath('Backend Dir', 'backend');
+checkPath('Shared Dir', 'shared');
+checkPath('Tailwind Config', 'frontend/tailwind.config.js');
 
 // 3. Dependency Checks
 console.log(`\n${colors.white}--- Dependencies ---${colors.reset}`);
@@ -95,6 +94,19 @@ if (!fs.existsSync(backendEnv)) {
 } else {
   console.log(`${colors.green}  ✅ Backend .env  : Ready${colors.reset}`);
 }
+
+const backendEnvDocker = path.join(rootDir, 'backend', '.env.docker');
+if (!fs.existsSync(backendEnvDocker)) {
+  console.log(
+    `${colors.yellow}  ⚠️  Backend .env.docker: Missing (Run 'npm run init' to fix)${colors.reset}`,
+  );
+} else {
+  console.log(`${colors.green}  ✅ Backend .env.docker: Ready${colors.reset}`);
+}
+
+console.log(
+  `\n${colors.cyan}💡 Tip: If you plan to use Docker only, you can ignore missing local node_modules.${colors.reset}`,
+);
 
 console.log('\n---------------------------------------');
 console.log(

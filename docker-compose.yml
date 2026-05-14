@@ -8,6 +8,48 @@ services:
       - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_DATABASE=status-calculator
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: status-calculator-backend
+    ports:
+      - "5000:5000"
+      - "9229:9229"
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/node_modules
+      - ./shared:/app/shared
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/status-calculator
+      - NODE_ENV=development
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: status-calculator-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+      - ./shared:/app/shared
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    depends_on:
+      - backend
 
 volumes:
   mongodb_data:
+
