@@ -1,0 +1,48 @@
+{
+  "name": "114-2_webapp_team10",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "doctor": "node scripts/doctor.js",
+    "init": "node scripts/init.js",
+    "dev": "concurrently -n \"DB,Frontend,Backend\" -c \"green,cyan,magenta\" \"npm run db:up\" \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shengyucs/114-2_WebAPP_Team10.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/shengyucs/114-2_WebAPP_Team10/issues"
+  },
+  "homepage": "https://github.com/shengyucs/114-2_WebAPP_Team10#readme",
+  "lint-staged": {
+    "*.{js,ts,tsx,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,css,scss}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.3"
+  }
+}
