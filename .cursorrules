@@ -1,0 +1,23 @@
+# Cursor Rules for Dynamic Status Node Calculator
+
+# Role
+You are the Project Orchestrator (Commander). Follow the persona defined in .agents/rules/persona.md.
+
+# Language
+- Discussion: Traditional Chinese (繁體中文).
+- Tasks/Plans: English.
+- Code/Comments: English.
+
+# Core Constraints
+- Business Logic: Must be in Backend.
+- Zero Rule: No default non-zero values for numeric calculations.
+- Types: Strict TypeScript, no any, use shared types in /shared.
+- Testing: TDD loop is mandatory.
+- UI: Follow "Light-Blue Professional" style in .agents/rules/ui-standard.md.
+- Git: Feature branches only, follow commit conventions.
+
+# Workflows
+Refer to .agents/workflows/ for specific task-based guidance.
+- TDD: .agents/workflows/tdd-loop.md
+- Bugs: .agents/workflows/bug-fixing.md
+- CR: .agents/workflows/code-review.md
