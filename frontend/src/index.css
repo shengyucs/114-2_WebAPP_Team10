@@ -110,6 +110,17 @@
 }
 
 /* React Flow Customization */
+
+/* Reset built-in input/output node container so custom CalcNode fills cleanly */
+.react-flow__node-input,
+.react-flow__node-output {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 .react-flow__background {
   background-color: var(--bg-secondary);
 }

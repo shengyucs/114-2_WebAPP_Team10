@@ -24,9 +24,9 @@ describe('App Dashboard Layout', () => {
     expect(screen.getByText('Inspector')).toBeInTheDocument();
   });
 
-  it('renders the Timeline placeholder', () => {
+  it('renders the Timeline', () => {
     render(<App />);
-    expect(screen.getByText(/Timeline Placeholder/i)).toBeInTheDocument();
+    expect(screen.getByText(/Timeline Controller/i)).toBeInTheDocument();
   });
 
   it('renders the Canvas with React Flow', () => {
