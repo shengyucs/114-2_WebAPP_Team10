@@ -1,26 +1,48 @@
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
+import ToolboxItem from './components/ToolboxItem';
+import InspectorPanel from './components/InspectorPanel';
 
 function App() {
   return (
     <div className="flex flex-col flex-1 w-full h-full bg-bg-secondary p-1">
       <div className="flex flex-1 h-full relative overflow-hidden bg-bg-secondary gap-1">
+        {/* Left — Toolbox */}
         <Sidebar title="Toolbox" position="left">
-          <div className="px-2 py-4">
-            <p className="text-sm font-medium text-text-secondary/70 italic px-2">
-              Node templates will appear here.
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">
+              Node Templates
             </p>
+            <ToolboxItem
+              type="input"
+              label="Input Node"
+              description="Defines a base stat value"
+              headerBg="bg-blue-500"
+              borderColor="border-blue-200 hover:border-blue-400"
+            />
+            <ToolboxItem
+              type="buff"
+              label="Buff Node"
+              description="Adds a time-based modifier"
+              headerBg="bg-purple-500"
+              borderColor="border-purple-200 hover:border-purple-400"
+            />
+            <ToolboxItem
+              type="output"
+              label="Output Node"
+              description="Displays the final result"
+              headerBg="bg-emerald-500"
+              borderColor="border-emerald-200 hover:border-emerald-400"
+            />
           </div>
         </Sidebar>
 
+        {/* Center — Canvas */}
         <Canvas />
 
+        {/* Right — Inspector */}
         <Sidebar title="Inspector" position="right">
-          <div className="px-2 py-4">
-            <p className="text-sm font-medium text-text-secondary/70 italic px-2">
-              Select a node to view properties.
-            </p>
-          </div>
+          <InspectorPanel />
         </Sidebar>
       </div>
     </div>

@@ -44,6 +44,7 @@ typings/
 .env.test.local
 .env.production.local
 *.env
+*.env.docker
 
 # next.js
 .next/
@@ -77,6 +78,9 @@ bower_components/
 !.vscode/launch.json
 !.vscode/tasks.json
 .idea/
+
+# Claude Code local settings (personal, not for team sharing)
+.claude/settings.local.json
 *.suo
 *.ntvs*
 *.njsproj
