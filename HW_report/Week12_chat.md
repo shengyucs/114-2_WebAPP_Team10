@@ -2598,3 +2598,18 @@ _User accepted the command `git add .`_
 3.  這次你應該會看到它正常執行，且不會再有那幾行黃色的警告訊息了。
 
 確認沒問題後，我們今天的工作就真的完美收工了！
+
+# 涂家赫
+
+我的第一個任務是SRS中的UC1，希望再畫面左邊新增一個方塊，當我點下去，畫面中間的類似畫布的東西也會生出一個新的方塊，當我選取這個方塊時，右邊會出現一些簡單的property可以輸入，例如名稱(可以不輸入)，大小，xy座標等等，還要有一個value，整體類似drawio
+
+UC1 實作完成
+這次 UI 任務改動的文件：
+
+shared/types.ts — 加了 label?: string
+frontend/src/store/useStore.ts — 加了 selectedNodeId、addNode、patchNode
+frontend/src/components/nodes/CalcNode.tsx — 新建，三種顏色的節點（Input 藍、Buff 紫、Output 綠）
+frontend/src/components/ToolboxItem.tsx — 新建，Toolbox 點擊按鈕
+frontend/src/components/InspectorPanel.tsx — 新建，屬性面板（Label / Value / Zone / Position / Size）
+frontend/src/components/Canvas.tsx — 註冊 custom nodeTypes、處理選取同步
+frontend/src/App.tsx — 整合三個 ToolboxItem 和 InspectorPanel
