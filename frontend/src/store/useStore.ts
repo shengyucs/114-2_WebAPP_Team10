@@ -75,6 +75,7 @@ export const useStore = create<StoreState>((set, get) => ({
         value: 0,
         multiplierZone: 'default',
         isPercentage: false,
+        ...(type === 'operator' ? { operator: '+' as const } : {}),
       },
       style: { width: 180, height: 90 },
     };

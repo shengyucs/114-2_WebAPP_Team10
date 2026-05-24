@@ -50,9 +50,49 @@ const InspectorPanel: React.FC = () => {
   const width = (node.style?.width as number | undefined) ?? 180;
   const height = (node.style?.height as number | undefined) ?? 90;
   const isBuff = node.type === 'buff';
+  const isOperator = node.type === 'operator';
+
+  const OPERATORS: {
+    value: '+' | '-' | '*' | '/';
+    symbol: string;
+    label: string;
+  }[] = [
+    { value: '+', symbol: '+', label: 'Add' },
+    { value: '-', symbol: '−', label: 'Subtract' },
+    { value: '*', symbol: '×', label: 'Multiply' },
+    { value: '/', symbol: '÷', label: 'Divide' },
+  ];
 
   return (
     <div className="flex flex-col gap-5 py-3">
+      {/* Operation — only for operator nodes */}
+      {isOperator && (
+        <section className="px-4">
+          <SectionHeader title="Operation" />
+          <div className="grid grid-cols-4 gap-1.5">
+            {OPERATORS.map((op) => (
+              <button
+                key={op.value}
+                title={op.label}
+                onClick={() =>
+                  patchNode(node.id, { data: { operator: op.value } })
+                }
+                className={`
+                  py-2 rounded-md border-2 text-lg font-bold transition-all duration-100
+                  ${
+                    (data.operator ?? '+') === op.value
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-amber-400 hover:text-amber-500'
+                  }
+                `}
+              >
+                {op.symbol}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Identification */}
       <section className="px-4">
         <SectionHeader title="Identification" />

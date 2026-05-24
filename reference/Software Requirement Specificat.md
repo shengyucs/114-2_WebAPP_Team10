@@ -14,7 +14,7 @@ The system is a Web-based thin-client application providing gamers and theorycra
 
 - **DAG (Directed Acyclic Graph):** The core data structure for all numerical nodes and edges. Circular dependencies are strictly prohibited.
 - **Multiplier Zone:** Independent blocks of calculation. Values within the same zone are combined using addition; values across different zones are combined using multiplication.
-- **Debouncing:** A performance optimization technique ensuring high-frequency events (e.g., dragging the timeline slider) trigger server requests only after the user pauses, preventing server overload.
+- **Operator Node:** A special node type that accepts two ordered inputs (A and B) and applies a user-selected arithmetic operation (+, −, ×, ÷) to produce a single output.
 
 ## 2. System Architecture
 
@@ -45,7 +45,7 @@ flowchart TB
         Mongo[(MongoDB)]
     end
 
-    User -- "1. Drag nodes, adjust timeline" --> UI
+    User -- "1. Drag nodes, configure graph" --> UI
     User -- "5. Login & Cloud access" --> Drive_Client
 
     UI <--> State
@@ -122,20 +122,21 @@ flowchart LR
     subgraph System ["Web App"]
         direction TB
         UC1([1. Create & Connect Nodes])
-        UC2([2. Configure Node Status & Zones])
-        UC3([3. Adjust Global Timeline])
-        UC4([4. View Dynamic Results])
+        UC2([2. Configure Node Properties & Zones])
+        UC4([4. View Calculation Results])
         UC5([5. Generate Short URL])
         UC6([6. Load Shared Template])
         UC7([7. Login & Authorize])
         UC8([8. Save Graph to Cloud])
         UC9([9. Load Graph from Cloud])
+        UC10([10. Configure Operator Node])
     end
 
-    User --- UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9
+    User --- UC1 & UC2 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10
     UC8 -. "<<include>>" .-> UC7
     UC9 -. "<<include>>" .-> UC7
-    UC1 & UC3 --- SysEngine
+    UC10 -. "<<extend>>" .-> UC2
+    UC1 --- SysEngine
     SysEngine --- UC4
     UC7 & UC8 & UC9 --- GoogleAPI
 ```
@@ -148,10 +149,9 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
 
 - **Main Flow:**
   1. Upon entering the web app, the system loads a full-screen React Flow canvas.
-  2. The left side displays a **Toolbox**: Lists available node templates (e.g., Input Node, Buff Node, Output Node).
+  2. The left side displays a **Toolbox**: Lists available node templates (Input Node, Buff Node, Output Node, Operator Node).
   3. The center area is the **Canvas**: Supports zooming, panning, and grid-snapping.
   4. The right side displays the **Inspector (Property Panel)**: Initially empty, but will expand/populate when a node is clicked.
-  5. The bottom area displays a **Timeline**: A slider initially set to 0 seconds.
 - **Acceptance Criteria (AC):**
   - **AC1 - Canvas Completeness:** The user must see a functional canvas with a visible background grid.
   - **AC2 - Layout Consistency:** The Toolbox and Inspector must be fixed sidebars that do not move when the canvas is zoomed or panned.
@@ -160,15 +160,16 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
 #### UC1: Create & Connect Numerical Nodes
 
 - **Precondition:** Canvas is initialized.
-- **Trigger:** User drags a node from the toolbox to the canvas.
+- **Trigger:** User clicks a node template in the Toolbox.
 - **Main Flow:**
-  1. System renders an input or output node on the canvas.
-  2. User drags from Node A's output handle to Node B's input handle.
-  3. Frontend immediately blocks any connection that would create a Circular Dependency.
-  4. System syncs the topology changes to the backend via WebSocket.
+  1. System renders a node of the selected type (Input, Buff, Output, or Operator) on the canvas.
+  2. **Operator Node:** Renders with two distinct target handles on the left side — **A** (first operand) and **B** (second operand) — and one source handle on the right (result output).
+  3. User drags from a source handle to a target handle to create a connection.
+  4. Frontend immediately blocks any connection that would create a Circular Dependency.
+  5. System syncs the topology changes to the backend via WebSocket.
 - **Postcondition:** DAG structure is successfully updated.
 
-#### UC2: Configure Node Status & Multiplier Zones
+#### UC2: Configure Node Properties & Multiplier Zones
 
 - **Precondition:** Nodes exist on the canvas.
 - **Trigger:** User clicks a node to open the Property Inspector.
@@ -178,23 +179,12 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
   3. **Strict Evaluation:** The system MUST NOT implicitly assume hidden base values. If no base probability is declared on the canvas, the system must not assume a default 50%. Calculations must strictly reflect the user's explicit node connections.
 - **Postcondition:** Node properties updated, triggering calculation.
 
-#### UC3: Adjust Global Timeline
-
-- **Precondition:** At least one "Status/Buff Node" with time parameters exists.
-- **Trigger:** User drags the global timeline slider at the bottom.
-- **Main Flow:**
-  1. Frontend triggers `onChange` event, applying Debounce logic.
-  2. Once dragging stops, frontend emits the `currentTime` to the backend.
-  3. Backend filters nodes, activating only Status nodes where `startTime <= currentTime <= endTime`.
-- **Postcondition:** Timeline state updated, triggering backend compute engine.
-
-#### UC4: View Dynamic Calculation Results
+#### UC4: View Calculation Results
 
 - **Precondition:** Backend compute engine finishes topological sorting and calculation.
 - **Main Flow:**
   1. Backend emits `calc_result` event via WebSocket to the frontend.
-  2. Frontend parses the payload and updates the numeric displays on "Output Nodes".
-  3. Frontend applies CSS highlighting to Buff nodes that are currently active at the selected timeline second.
+  2. Frontend parses the payload and updates the numeric displays on Output Nodes.
 
 #### UC5: Generate Shareable Short URL
 
@@ -240,6 +230,19 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
   2. UI renders a file picker list.
   3. Upon selection, system downloads the file, deserializes the JSON, and overwrites the canvas state.
 
+#### UC10: Configure Operator Node
+
+- **Precondition:** An Operator Node exists on the canvas and is selected.
+- **Trigger:** User clicks an Operator Node on the canvas.
+- **Main Flow:**
+  1. Inspector Panel opens and displays an **Operation** section at the top.
+  2. Four buttons are shown: `+` (Add), `−` (Subtract), `×` (Multiply), `÷` (Divide).
+  3. The currently active operation is highlighted with a blue border.
+  4. User clicks a button to select the desired operation.
+  5. The node's canvas display immediately updates to show the new operation symbol.
+- **Postcondition:** The Operator Node's `operator` property is updated; subsequent graph calculations use the new operation.
+- **Special Constraint:** For non-commutative operations (subtraction, division), the operand order is fixed: handle **A** (top-left) is the first operand, handle **B** (bottom-left) is the second. The computation is always `A [op] B` (e.g., `A ÷ B`, not `B ÷ A`).
+
 ## 4. Detailed Functional Requirements
 
 ### 4.1 Algorithm & Topological Sorting
@@ -257,17 +260,21 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
 // Shared Types Definition
 export interface NodeData {
   id: string;
-  type: 'input' | 'output' | 'buff';
+  type: 'input' | 'output' | 'buff' | 'operator';
+  label?: string; // Optional display name
   multiplierZone: string; // Identifier for the calculation zone
   value: number; // Numeric stat value
   isPercentage: boolean; // True if value is a percentage
   startTime?: number; // Active start time for buffs
   endTime?: number; // Active end time for buffs
+  operator?: '+' | '-' | '*' | '/'; // Only for operator nodes; default '+'
 }
 
 export interface EdgeData {
   source: string; // Source Node ID
   target: string; // Target Node ID
+  sourceHandle?: string; // Handle ID on source node (e.g. 'a', 'b')
+  targetHandle?: string; // Handle ID on target node
 }
 
 export interface GraphState {
@@ -281,8 +288,7 @@ export interface GraphState {
 ### 5.1 User Interface (UI)
 
 - **Canvas:** Must support "Snap to grid", infinite zooming, and panning. Nodes must be draggable, connected via bezier curves.
-- **Timeline:** Horizontal slider at the bottom of the screen. Dragging must visually display the currently selected second in real-time.
-- **Inspector Panel:** Clicking a node opens a dynamic right sidebar containing a dropdown (Multiplier Zone), numeric input, and a slider (Time range).
+- **Inspector Panel:** Clicking a node opens a dynamic right sidebar. For Operator Nodes, the panel shows an Operation selector (four buttons: +, −, ×, ÷) at the top. For all node types, it shows Identification (label), Value, and Position/Size fields. Buff nodes additionally show Start/End time fields.
 
 ### 5.2 System & Communication Interfaces
 
@@ -297,7 +303,6 @@ export interface GraphState {
 
 ### 6.1 Performance Constraints
 
-- **Timeline Debouncing:** In React, the timeline `onChange` event MUST implement a `100ms` debouncing logic. Rapid dragging MUST NOT trigger WebSocket emissions. The payload is only sent when the slider stops, preventing Node.js Event Loop starvation.
 - **Compute Latency:** Backend topological sorting and DAG calculation for a single cycle MUST complete in `< 50ms`.
 
 ### 6.2 Reliability & Scalability

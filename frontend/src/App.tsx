@@ -34,6 +34,13 @@ function App() {
               headerBg="bg-emerald-500"
               borderColor="border-emerald-200 hover:border-emerald-400"
             />
+            <ToolboxItem
+              type="operator"
+              label="Operator Node"
+              description="Applies +, −, ×, or ÷ to inputs"
+              headerBg="bg-amber-500"
+              borderColor="border-amber-200 hover:border-amber-400"
+            />
           </div>
         </Sidebar>
 

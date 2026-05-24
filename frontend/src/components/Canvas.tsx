@@ -10,11 +10,13 @@ import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
 import Timeline from './Timeline';
 import CalcNode from './nodes/CalcNode';
+import OperatorNode from './nodes/OperatorNode';
 
 const nodeTypes = {
   input: CalcNode,
   output: CalcNode,
   buff: CalcNode,
+  operator: OperatorNode,
 };
 
 const Canvas: React.FC = () => {
@@ -73,12 +75,14 @@ const Canvas: React.FC = () => {
             if (n.type === 'input') return '#3b82f6';
             if (n.type === 'output') return '#10b981';
             if (n.type === 'buff') return '#8b5cf6';
+            if (n.type === 'operator') return '#f59e0b';
             return '#d1d9e6';
           }}
           nodeColor={(n) => {
             if (n.type === 'input') return '#dbeafe';
             if (n.type === 'output') return '#d1fae5';
             if (n.type === 'buff') return '#ede9fe';
+            if (n.type === 'operator') return '#fef3c7';
             return '#fff';
           }}
           maskColor="rgba(240, 244, 248, 0.6)"
