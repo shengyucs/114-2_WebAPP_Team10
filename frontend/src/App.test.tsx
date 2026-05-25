@@ -10,6 +10,17 @@ vi.mock('reactflow', () => ({
   Background: () => <div data-testid="rf-background" />,
   Controls: () => <div data-testid="rf-controls" />,
   MiniMap: () => <div data-testid="rf-minimap" />,
+  Panel: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <div data-testid="rf-panel" className={className}>
+      {children}
+    </div>
+  ),
   BackgroundVariant: { Dots: 'dots' },
 }));
 
