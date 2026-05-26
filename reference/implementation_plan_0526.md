@@ -156,6 +156,7 @@ Instead of a REST API and MongoDB, all sharing happens through the frontend:
 #### [MODIFY] [Canvas.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/Canvas.tsx)
 
 - Integrate URL routing checks on mount to parse both `#/s/{compressed_base64}` and `#/drive/{fileId}` to load community-shared models.
+- **Delete Key Shortcut**: Configure React Flow's `deleteKeyCode` property to `'Delete'` to change the deletion keyboard shortcut from Backspace to the Delete key, aligning with standard OS deletion layouts.
 
 #### [MODIFY] [CalcNode.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/nodes/CalcNode.tsx)
 

@@ -281,7 +281,7 @@ export interface GraphState {
 
 ### 5.1 User Interface (UI)
 
-- **Canvas:** Must support "Snap to grid", infinite zooming, and panning. Nodes must be draggable, connected via bezier curves.
+- **Canvas:** Must support "Snap to grid", infinite zooming, and panning. Nodes must be draggable, connected via bezier curves. Selected nodes or edges can be deleted using the 'Delete' key on the keyboard.
 - **Inspector Panel:** Clicking a node opens a dynamic right sidebar. For Operator Nodes, the panel shows an Operation selector (four buttons: +, −, ×, ÷) at the top. For all node types, it shows Identification (label), Value, and Position/Size fields.
 
 ### 5.2 System & Communication Interfaces
