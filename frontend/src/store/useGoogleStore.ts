@@ -9,6 +9,8 @@ interface GoogleState {
   isConnected: boolean;
   isLoading: boolean;
   cloudFiles: Array<{ id: string; name: string; createdTime: string }>;
+  activeFileId: string | null;
+  activeFileName: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   fetchCloudFiles: () => Promise<void>;
@@ -25,6 +27,8 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
   isConnected: false,
   isLoading: false,
   cloudFiles: [],
+  activeFileId: null,
+  activeFileName: null,
 
   connect: async () => {
     set({ isLoading: true });
@@ -78,6 +82,8 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
       userInfo: null,
       isConnected: false,
       cloudFiles: [],
+      activeFileId: null,
+      activeFileName: null,
     });
   },
 
@@ -99,6 +105,13 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
       const canvasState = useStore.getState().getGraphState();
       await service.saveGraph(name, canvasState);
       await get().fetchCloudFiles();
+
+      const fullFilename = name.endsWith('.calc') ? name : `${name}.calc`;
+      const file = get().cloudFiles.find((f) => f.name === fullFilename);
+      set({
+        activeFileId: file ? file.id : null,
+        activeFileName: name,
+      });
     } catch (err) {
       console.error('Failed to save graph:', err);
       throw err;
@@ -111,6 +124,13 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
     set({ isLoading: true });
     try {
       const graph: GraphState = await service.loadGraph(id);
+
+      const file = get().cloudFiles.find((f) => f.id === id);
+      const cleanName = file
+        ? file.name.endsWith('.calc')
+          ? file.name.slice(0, -5)
+          : file.name
+        : 'Cloud Graph';
 
       const flowNodes = graph.nodes.map((n, idx) => {
         const col = idx % 4;
@@ -151,6 +171,11 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
       useStore.getState().setNodes(flowNodes);
       useStore.getState().setEdges(flowEdges);
       useStore.getState().setSelectedNodeId(null);
+
+      set({
+        activeFileId: id,
+        activeFileName: cleanName,
+      });
     } catch (err) {
       console.error('Failed to load graph:', err);
       throw err;

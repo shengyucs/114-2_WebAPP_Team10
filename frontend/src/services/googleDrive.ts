@@ -85,8 +85,9 @@ export class GoogleDriveService {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to update file in Google Drive: ${response.statusText}`,
+        await this.handleErrorResponse(
+          response,
+          'Failed to update file in Google Drive',
         );
       }
     } else {
@@ -119,8 +120,9 @@ export class GoogleDriveService {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to save file in Google Drive: ${response.statusText}`,
+        await this.handleErrorResponse(
+          response,
+          'Failed to save file in Google Drive',
         );
       }
     }
@@ -133,8 +135,9 @@ export class GoogleDriveService {
     const response = await this.fetchWithRetry(listUrl);
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to list files from Google Drive: ${response.statusText}`,
+      await this.handleErrorResponse(
+        response,
+        'Failed to list files from Google Drive',
       );
     }
 
@@ -149,8 +152,9 @@ export class GoogleDriveService {
     const response = await this.fetchWithRetry(loadUrl);
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to load file from Google Drive: ${response.statusText}`,
+      await this.handleErrorResponse(
+        response,
+        'Failed to load file from Google Drive',
       );
     }
 
@@ -164,8 +168,9 @@ export class GoogleDriveService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to delete file from Google Drive: ${response.statusText}`,
+      await this.handleErrorResponse(
+        response,
+        'Failed to delete file from Google Drive',
       );
     }
   }
@@ -178,5 +183,21 @@ export class GoogleDriveService {
     if (!response.ok) return null;
     const data = await response.json();
     return data.files || [];
+  }
+
+  private async handleErrorResponse(
+    response: Response,
+    defaultMessage: string,
+  ): Promise<never> {
+    let errorDetail = response.statusText;
+    try {
+      const errData = await response.json();
+      if (errData?.error?.message) {
+        errorDetail = errData.error.message;
+      }
+    } catch {
+      // Ignore if response is not JSON or cannot be parsed
+    }
+    throw new Error(`${defaultMessage}: ${errorDetail || response.status}`);
   }
 }

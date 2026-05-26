@@ -49,6 +49,8 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
       isConnected: false,
       isLoading: false,
       cloudFiles: [],
+      activeFileId: null,
+      activeFileName: null,
     });
 
     // Reset standard store state
@@ -118,6 +120,8 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
       accessToken: 'token',
       userInfo: { name: 'Test', email: 'test@gmail.com', picture: '' },
       cloudFiles: [{ id: 'f1', name: 'g.calc', createdTime: 'now' }],
+      activeFileId: 'f1',
+      activeFileName: 'g',
     });
 
     useGoogleStore.getState().disconnect();

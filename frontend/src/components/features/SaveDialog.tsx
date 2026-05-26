@@ -6,8 +6,10 @@ interface SaveDialogProps {
 }
 
 export default function SaveDialog({ onClose }: SaveDialogProps) {
-  const { saveCurrentGraph, isLoading } = useGoogleStore();
-  const [filename, setFilename] = useState(() => {
+  const { saveCurrentGraph, isLoading, activeFileName } = useGoogleStore();
+  const [isOverwrite, setIsOverwrite] = useState(() => !!activeFileName);
+
+  const generateTimestampName = () => {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -15,15 +17,23 @@ export default function SaveDialog({ onClose }: SaveDialogProps) {
     const hh = String(now.getHours()).padStart(2, '0');
     const min = String(now.getMinutes()).padStart(2, '0');
     return `graph_${yyyy}${mm}${dd}_${hh}${min}`;
+  };
+
+  const [filename, setFilename] = useState(() => {
+    if (activeFileName) {
+      return `${activeFileName}_copy`;
+    }
+    return generateTimestampName();
   });
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Auto-focus input safely on mount
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
+    if (!isOverwrite) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isOverwrite]);
 
   // Keyboard accessibility
   useEffect(() => {
@@ -38,14 +48,15 @@ export default function SaveDialog({ onClose }: SaveDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!filename.trim()) {
+    const finalName = isOverwrite ? activeFileName : filename.trim();
+    if (!finalName || !finalName.trim()) {
       setError('Filename cannot be empty');
       return;
     }
 
     setError('');
     try {
-      await saveCurrentGraph(filename.trim());
+      await saveCurrentGraph(finalName.trim());
       onClose();
     } catch (err: unknown) {
       setError(
@@ -106,24 +117,62 @@ export default function SaveDialog({ onClose }: SaveDialogProps) {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-              Calculation File Name
-            </label>
-            <div className="relative flex items-center">
-              <input
-                ref={inputRef}
-                type="text"
-                value={filename}
-                onChange={(e) => setFilename(e.target.value)}
-                disabled={isLoading}
-                placeholder="my_epic_build"
-                className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50/50 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl outline-none shadow-inner focus:shadow-md focus:shadow-blue-500/5 transition-all duration-200"
-              />
-              <span className="absolute right-3.5 text-[10px] font-bold text-slate-400 font-mono select-none">
-                .calc
-              </span>
+          {activeFileName && (
+            <div className="flex flex-col gap-1.5 mb-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                Save Options
+              </label>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setIsOverwrite(true)}
+                  disabled={isLoading}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                    isOverwrite
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOverwrite(false)}
+                  disabled={isLoading}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                    !isOverwrite
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Save as New
+                </button>
+              </div>
             </div>
+          )}
+
+          <div className="flex flex-col gap-1.5">
+            {!isOverwrite && (
+              <>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                  Calculation File Name
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={filename}
+                    onChange={(e) => setFilename(e.target.value)}
+                    disabled={isLoading}
+                    placeholder="my_epic_build"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50/50 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl outline-none shadow-inner focus:shadow-md focus:shadow-blue-500/5 transition-all duration-200"
+                  />
+                  <span className="absolute right-3.5 text-[10px] font-bold text-slate-400 font-mono select-none">
+                    .calc
+                  </span>
+                </div>
+              </>
+            )}
             {error && (
               <span className="text-[10px] font-semibold text-red-500 pl-1 mt-1 font-mono flex items-center gap-1">
                 <svg
