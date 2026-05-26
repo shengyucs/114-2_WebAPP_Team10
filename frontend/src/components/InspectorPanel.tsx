@@ -49,7 +49,6 @@ const InspectorPanel: React.FC = () => {
   const { data } = node;
   const width = (node.style?.width as number | undefined) ?? 180;
   const height = (node.style?.height as number | undefined) ?? 90;
-  const isBuff = node.type === 'buff';
   const isOperator = node.type === 'operator';
 
   const OPERATORS: {
@@ -147,27 +146,6 @@ const InspectorPanel: React.FC = () => {
           </label>
         </div>
       </section>
-
-      {/* Timeline — only for buff nodes */}
-      {isBuff && (
-        <section className="px-4">
-          <SectionHeader title="Timeline" />
-          <div className="grid grid-cols-2 gap-3">
-            <NumInput
-              label="Start (s)"
-              value={data.startTime ?? 0}
-              min={0}
-              onChange={(v) => patchNode(node.id, { data: { startTime: v } })}
-            />
-            <NumInput
-              label="End (s)"
-              value={data.endTime ?? 0}
-              min={0}
-              onChange={(v) => patchNode(node.id, { data: { endTime: v } })}
-            />
-          </div>
-        </section>
-      )}
 
       {/* Position */}
       <section className="px-4">

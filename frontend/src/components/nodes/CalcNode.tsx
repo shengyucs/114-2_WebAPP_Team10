@@ -17,12 +17,6 @@ const NODE_STYLES = {
     handleColor: '#10b981',
     typeLabel: 'OUTPUT',
   },
-  buff: {
-    border: 'border-purple-400',
-    header: 'bg-purple-500',
-    handleColor: '#8b5cf6',
-    typeLabel: 'BUFF',
-  },
 } as const;
 
 const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({

@@ -1,6 +1,8 @@
-# Implementation Plan: Simplified Dynamic Status Node Calculator (No Buffs/Timeline)
+# Implementation Plan: Stateless & Decentralized Status Node Calculator (Simplified Aggregation)
 
-This updated implementation plan aligns with the simplified requirements: **removing all Buff nodes, Timeline features, and time-based calculations**. The focus is strictly on a visual, DAG-based calculator that computes RPG-style status additions with multiplier zones.
+This updated implementation plan aligns with the simplified requirements: **removing all Multiplier Zones** from the system specifications.
+
+The shared interfaces, frontend components, and backend calculation engine will be completely streamlined. Multiple inputs to a single node will now be processed as a **Simple Sum Aggregation** ($Input = \sum Upstream$), keeping the calculator extremely clean, performant, and database-less.
 
 ---
 
@@ -19,25 +21,46 @@ We have identified several design items that require user review or feedback:
 
 ---
 
-## Open Questions
+## Technical Architecture (Database-less & Serverless)
 
-> [!WARNING]
-> **Share Short URL Subdomain / Domain**
-> The SRS specifies that sharing generates a URL like `https://domain.com/s/uuid`.
-> Since we are running the frontend on `localhost:5173` and the backend on `localhost:5000` during local dev, should we generate `http://localhost:5173/s/{uuid}` for the local development environment?
+By removing MongoDB, the tech stack becomes incredibly clean:
+
+- **Backend (Node.js + Socket.io)**: A stateless microservice dedicated purely to real-time high-speed graph computation.
+- **Frontend (React + Zustand + React Flow)**: Manages UI rendering, DFS cycle-prevention, Google Drive OAuth operations, and URL serialization.
 
 ---
 
 ## Proposed Changes
 
-We divide the simplified implementation into 4 logical phases, proceeding from core data structure adjustments to full backend execution and frontend integration.
+We divide this decentralized implementation into 5 sequential phases:
 
 ```mermaid
 graph TD
-    A[Phase 1: Shared Interfaces & Serialization] --> B[Phase 2: Backend Core Engine & Socket.io]
-    B --> C[Phase 3: Community Sharing REST API & MongoDB]
-    C --> D[Phase 4: Frontend WebSocket & UI Integration]
+    A[Phase 0: Decommission MongoDB & Mongoose] --> B[Phase 1: Shared Interfaces & Cycle Prevention]
+    B --> C[Phase 2: Backend Pure Computation Engine]
+    C --> D[Phase 3: Dual-Mode Serverless UGC Sharing]
+    D --> E[Phase 4: WebSocket Client & Rendering]
 ```
+
+---
+
+### Phase 0: Decommission MongoDB & Mongoose
+
+We will purge all database connections, services, and libraries from both the local repository configuration and docker infrastructure.
+
+#### [MODIFY] [docker-compose.yml](file:///d:/GitHub/114-2_WebAPP_Team10/docker-compose.yml)
+
+- Delete the entire `mongodb` service container block.
+- Delete the `mongodb_data` volume block at the bottom of the file.
+- Modify the `backend` service block to remove `depends_on` and `MONGODB_URI`.
+
+#### [MODIFY] [package.json (backend)](file:///d:/GitHub/114-2_WebAPP_Team10/backend/package.json)
+
+- Remove `"mongoose"` from dependencies.
+
+#### [MODIFY] [index.ts (backend)](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/index.ts)
+
+- Remove mongoose imports and database connection logic, leaving a pure Express and Socket.io microservice.
 
 ---
 
@@ -45,18 +68,18 @@ graph TD
 
 #### [MODIFY] [types.ts](file:///d:/GitHub/114-2_WebAPP_Team10/shared/types.ts)
 
-- Simplify `NodeData` interface by removing `startTime`, `endTime`, and removing `buff` from `type`.
+- Simplify the `NodeData` interface: **remove `multiplierZone`**.
 - Extend `EdgeData` interface to fully support Operator Node connections by including React Flow's `sourceHandle` and `targetHandle`.
+- **Reference Code Blocks**:
 
 ```typescript
 export interface NodeData {
   id: string;
-  type: 'input' | 'output' | 'operator'; // Removed 'buff'
-  label?: string;
-  multiplierZone: string;
-  value: number;
-  isPercentage: boolean;
-  operator?: '+' | '-' | '*' | '/';
+  type: 'input' | 'output' | 'operator';
+  label?: string; // Optional display name
+  value: number; // Numeric stat value
+  isPercentage: boolean; // True if value is a percentage
+  operator?: '+' | '-' | '*' | '/'; // Only for operator nodes
 }
 
 export interface EdgeData {
@@ -73,32 +96,32 @@ export interface EdgeData {
 
 #### [MODIFY] [useStore.ts](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/store/useStore.ts)
 
-- **Simplify State**: Remove `currentTime` and `setCurrentTime` from the Zustand store.
-- **Edge Handle Serialization**: Update `getGraphState()` to retrieve and map `sourceHandle` and `targetHandle` from React Flow edges so they are not lost during save operations.
+- **State Simplification**: Remove `multiplierZone` defaults from the `addNode()` initializer.
+- **Edge Handle Serialization**: Update `getGraphState()` to retrieve and map `sourceHandle` and `targetHandle` from React Flow edges so they are not lost during save/share operations.
 - **Circular Dependency Prevention**: Update `onConnect` to run a depth-first search (DFS) cycle-detection utility before adding an edge. If a cycle is detected, block the connection.
 - **Add Calculation Result State**: Add a `results: Record<string, number>` state in Zustand store to store the dynamic results returned by the backend.
 
 ---
 
-### Component 3: Backend Database & REST API
+### Component 3: Dual-Mode Serverless UGC Sharing (Database-less)
 
-#### [NEW] [graph.ts](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/models/graph.ts)
+Instead of a REST API and MongoDB, all sharing happens through the frontend:
 
-- Define Mongoose schema matching the simplified `GraphState` interface.
-- Store a unique, automatically generated UUID and the serialized nodes & edges.
+#### [NEW] [lz-string.ts] or install via npm
 
-#### [NEW] [shareController.ts](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/controllers/shareController.ts)
-
-- Implement `shareGraph`: Receives `GraphState`, validates JSON, stores in MongoDB, and returns a share ID (UUID).
-- Implement `loadGraph`: Receives share ID, fetches from MongoDB, and returns the graph data.
-
-#### [NEW] [shareRoutes.ts](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/routes/shareRoutes.ts)
-
-- Define `POST /api/share` and `GET /api/share/:id` Express endpoints.
+- **Option 1: LZ URL Compression (Anonymous Sharing)**:
+  - When the user clicks "Share" (and is not logged in), serialize `GraphState` to JSON, compress it with LZ-string, and output a URL-safe Base64 hash:
+    `https://domain.com/#/s/{compressed_base64}`
+  - When loading the site, decompress the Base64 hash back to JSON, and inject it into the Zustand store.
+- **Option 3: Google Drive Permissions Sharing (Authenticated Sharing)**:
+  - Call the Google Drive Permissions API to insert a permission of `{ role: 'reader', type: 'anyone' }` for the `.calc` file.
+  - Return a URL-safe sharing link containing the file ID:
+    `https://domain.com/#/drive/{google_drive_file_id}`
+  - When loading the site, download the public `.calc` file directly from Google Drive public files endpoint and render the canvas.
 
 ---
 
-### Component 4: Backend Calculation & DAG Engine
+### Component 4: Backend Calculation & DAG Engine (Stateless)
 
 #### [NEW] [calcEngine.ts](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/utils/calcEngine.ts)
 
@@ -106,22 +129,19 @@ export interface EdgeData {
 - **Strict Evaluator (The Zero Rule)**:
   - Treat absent inputs or missing connections as `0`.
   - Do not apply implicit hidden base values.
-- **Multiplier Zone Convergence Logic**:
-  - For a node, group all incoming inputs by their `multiplierZone` attribute.
-  - Inside each zone, sum the values: $ZoneValue = \sum Value$.
-  - Across different zones, multiply the zone results together: $TotalInput = \prod ZoneValue$.
+- **Simple Sum Aggregation**:
+  - **No Multiplier Zones**. If multiple upstream nodes connect to a single node, their inputs are aggregated purely using **addition**:
+    $$Input = \sum Value_{upstream}$$
 - **Operator Node Computing**:
   - Resolve operands ordered by handles: operand A (`a` handle) and operand B (`b` handle).
   - Compute $A \ [op] \ B$ for $+$, $-$, $*$, $/$. If $B = 0$ during division, output $0$ and log a safe division-by-zero warning.
 
 #### [MODIFY] [index.ts](file:///d:/GitHub/114-2_WebAPP_Team10/backend/src/index.ts)
 
-- Hook up Socket.io server.
 - Bind `update_graph` listener:
-  1. Receive `{ graph: GraphState }` (no currentTime).
+  1. Receive `{ graph: GraphState }`.
   2. Execute `calcEngine.calculate(graph)`.
   3. Emit `calc_result` back to client containing a map of `{ [nodeId]: calculatedValue }`.
-- Mount `/api/share` routes onto the Express app.
 
 ---
 
@@ -133,50 +153,52 @@ export interface EdgeData {
 - Synchronize graphs: Hook into Zustand store subscriptions. Whenever `nodes` or `edges` change, debounced-emit `update_graph`.
 - Handle calculation responses: Listen to `calc_result` and dispatch updates to store `results`.
 
-#### [DELETE] [Timeline.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/Timeline.tsx)
-
-- Delete the timeline slider component as it is no longer required.
-
 #### [MODIFY] [Canvas.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/Canvas.tsx)
 
-- Remove `Timeline` from layout imports and rendering.
-- Clean up `buff` styling in the MiniMap color maps.
+- Integrate URL routing checks on mount to parse both `#/s/{compressed_base64}` and `#/drive/{fileId}` to load community-shared models.
 
-#### [MODIFY] [CalcNode.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/nodes/CalcNode.tsx) and [OperatorNode.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/nodes/OperatorNode.tsx)
+#### [MODIFY] [CalcNode.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/nodes/CalcNode.tsx)
 
 - Pull calculated results from `results` state in Zustand.
-- If it is an Output or Operator node, render the _calculated result_ prominently instead of static/editable input properties.
-- Remove `buff` node registration and style maps from the frontend.
+- If it is an Output node, render the _calculated result_ prominently instead of static/editable input properties.
+- **Visual Cleanup**: Remove the rendering of `multiplierZone` label from the bottom of the node body.
 
 #### [MODIFY] [InspectorPanel.tsx](file:///d:/GitHub/114-2_WebAPP_Team10/frontend/src/components/InspectorPanel.tsx)
 
-- Remove the "Timeline" section (Start/End times) and references to `isBuff`.
 - Set output/operator node value inputs to read-only.
+- **Visual Cleanup**: Completely remove the "Zone" text field input from the Value properties section.
 
 ---
 
-## Verification Plan
+## Verification & Automated Test Plan
 
-### Automated Tests
+### 1. Backend Core Calculation Engine (Backend Unit Tests)
 
-- Write Jest/Vitest unit tests for the `calcEngine` covering:
-  - Directed Acyclic Graphs (normal flow).
-  - Multiplier Zone additions and cross-zone multiplications.
-  - Non-commutative operations (A - B vs B - A).
-  - Zero Rule edge cases (disconnected handles, division by zero).
+- **Test Suite 1: DAG Topological Sorting (REQ-4.1.1 / UC1)**
+  - `Sort Normal DAG`: Verify the topological ordering is calculated correctly (e.g., Input -> Operator -> Output).
+  - `Detect Cycle`: Verify that if a cyclic dependency slips past the frontend, the backend engine detects it and safely throws a `CircularDependencyError`.
+- **Test Suite 2: Simple Sum Aggregation (REQ-4.1.2 / UC2)**
+  - `Aggregate with Addition`: Verify that multiple upstream inputs to a single node are accumulated purely using **addition** (Sum Aggregation).
+  - `The Zero Rule`: Verify that any absent, unconfigured, or undefined values default to `0` with no hidden implicit base variables.
+- **Test Suite 3: Operator Node Computations (UC10)**
+  - `Commutative Operations`: Verify correct calculations for addition (`+`) and multiplication (`*`).
+  - `Non-commutative & Ordering`: Verify subtraction (`-`) and division (`/`) strictly calculate `Handle A [op] Handle B`.
+  - `Safe Division-by-Zero`: Verify that if the divisor is `0` or disconnected, it outputs `0` with a warning log.
+
+### 2. Frontend State & Decentralized Sharing (Frontend Unit & Integration Tests)
+
+- **Test Suite 4: Circular Prevention UX (UC1)**
+  - `Block Cyclical Edges in store`: Test that the Zustand `onConnect` DFS checker halts circular connections.
+  - `isValidConnection Callback`: Test that React Flow's `isValidConnection` returns `false` when drawing a cyclic line.
+- **Test Suite 5: LZ-String Anonymous Sharing (UC5 / UC6)**
+  - `Compress State to URL Hash`: Test that `getGraphState()` outputs are successfully compressed by `lz-string` and set onto the browser hash (`#/s/...`).
+  - `Decompress Hash to Canvas`: Test that booting the web app with a valid `#/s/{compressed}` URL correctly hydrates the Zustand store.
+- **Test Suite 6: Google Drive Permissions Sharing (UC8 / UC9)**
+  - `Create Public Reader Permission`: Verify the Google Drive permission request posts `{ role: 'reader', type: 'anyone' }`.
+  - `Anonymous Fetch from Public Drive`: Verify that accessing `#/drive/{fileId}` downloads and renders the model without requiring OAuth.
 
 ### Manual Verification
 
-1. **Interactive Demo**: Connect multiple zones, enter values, and observe output values updating instantly via WebSockets.
-2. **UGC Sharing Flow**: Click the "Share" button, verify the clipboard copy of `http://localhost:5173/s/{uuid}`, open the link in an incognito window, and verify the graph renders identically.
-
----
-
-## Expert Suggestions
-
-> [!TIP]
-> **1. Cycle Prevention UX**
-> Rather than letting the user draw a cycle and then alerting them with an ugly error dialog, we should use React Flow's `isValidConnection` prop. Inside `isValidConnection`, we check if the potential edge creates a cycle using our DFS check, and if so, return `false`. This prevents the connection visually in real-time, giving the user a premium, polished experience.
->
-> **2. Auto-Wipe Legacy Files**
-> Since we are removing the `buff` type and the timeline fields, there might be legacy `.calc` files on Google Drive containing `type: 'buff'`. We should write a defensive parser on the frontend that gracefully converts or drops legacy `buff` nodes to `input` nodes to prevent frontend parsing crashes.
+1. **Scrubbing Interactive Demo**: Connect active inputs, type in values, and observe instant simple sum aggregation results via WebSockets.
+2. **Anonymous URL Sharing Loop**: Click "Share" (not logged in), verify `http://localhost:5173/#/s/{compressed}` is in clipboard. Open in incognito, verify nodes render.
+3. **Google Drive Permission Sharing Loop**: Log in to Google, click "Publish & Share", copy `http://localhost:5173/#/drive/{fileId}`. Open in incognito, verify model loads.
