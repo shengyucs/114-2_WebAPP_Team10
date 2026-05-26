@@ -21,13 +21,6 @@ function App() {
               borderColor="border-blue-200 hover:border-blue-400"
             />
             <ToolboxItem
-              type="buff"
-              label="Buff Node"
-              description="Adds a time-based modifier"
-              headerBg="bg-purple-500"
-              borderColor="border-purple-200 hover:border-purple-400"
-            />
-            <ToolboxItem
               type="output"
               label="Output Node"
               description="Displays the final result"

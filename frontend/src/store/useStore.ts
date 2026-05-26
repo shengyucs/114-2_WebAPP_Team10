@@ -23,14 +23,12 @@ interface NodePatch {
 interface StoreState {
   nodes: Node<FlowNodeData>[];
   edges: Edge[];
-  currentTime: number;
   selectedNodeId: string | null;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   setNodes: (nodes: Node<FlowNodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
-  setCurrentTime: (time: number) => void;
   setSelectedNodeId: (id: string | null) => void;
   addNode: (type: NodeData['type']) => void;
   patchNode: (id: string, patch: NodePatch) => void;
@@ -40,7 +38,6 @@ interface StoreState {
 export const useStore = create<StoreState>((set, get) => ({
   nodes: [],
   edges: [],
-  currentTime: 0,
   selectedNodeId: null,
 
   onNodesChange: (changes) => {
@@ -57,7 +54,6 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
-  setCurrentTime: (time) => set({ currentTime: time }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
   addNode: (type) => {

@@ -35,11 +35,6 @@ describe('App Dashboard Layout', () => {
     expect(screen.getByText('Inspector')).toBeInTheDocument();
   });
 
-  it('renders the Timeline', () => {
-    render(<App />);
-    expect(screen.getByText(/Timeline Controller/i)).toBeInTheDocument();
-  });
-
   it('renders the Canvas with React Flow', () => {
     render(<App />);
     expect(screen.getByTestId('rf-root')).toBeInTheDocument();
