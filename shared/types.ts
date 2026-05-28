@@ -5,8 +5,7 @@ export interface NodeData {
   id: string;
   type: 'input' | 'output' | 'operator';
   label?: string; // Optional display name
-  multiplierZone: string; // Identifier for the calculation zone
-  value: number; // Numeric stat value
+  value: number; // Numeric stat value (user-set; ignored for output/operator)
   isPercentage: boolean; // True if value is a percentage
   operator?: '+' | '-' | '*' | '/'; // Only for operator nodes
 }
@@ -14,6 +13,8 @@ export interface NodeData {
 export interface EdgeData {
   source: string; // Source Node ID
   target: string; // Target Node ID
+  sourceHandle?: string; // e.g. 'a', 'b' for Operator Node A/B inputs
+  targetHandle?: string;
 }
 
 export interface GraphState {

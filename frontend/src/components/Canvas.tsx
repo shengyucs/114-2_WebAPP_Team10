@@ -6,7 +6,7 @@ import ReactFlow, {
   BackgroundVariant,
   Panel,
 } from 'reactflow';
-import type { NodeSelectionChange } from 'reactflow';
+import type { Node } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
 import { useGoogleStore } from '../store/useGoogleStore';
@@ -35,18 +35,11 @@ const Canvas: React.FC = () => {
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
 
-  // Sync ReactFlow selection state → our store
-  const handleNodesChange = useCallback(
-    (changes: Parameters<typeof onNodesChange>[0]) => {
-      onNodesChange(changes);
-      const selectionChange = changes.find(
-        (c): c is NodeSelectionChange => c.type === 'select',
-      );
-      if (selectionChange) {
-        setSelectedNodeId(selectionChange.selected ? selectionChange.id : null);
-      }
+  const handleNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id);
     },
-    [onNodesChange, setSelectedNodeId],
+    [setSelectedNodeId],
   );
 
   const handlePaneClick = useCallback(() => {
@@ -59,10 +52,12 @@ const Canvas: React.FC = () => {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={handleNodesChange}
+        onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
+        connectionRadius={30}
         fitView
         snapToGrid={true}
         snapGrid={[15, 15]}

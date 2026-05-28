@@ -1,43 +1,46 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { calculate } from './utils/calcEngine.js';
+import type { GraphState } from '../../shared/types.js';
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-  },
+  cors: { origin: '*' },
 });
 
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI =
-  process.env.MONGODB_URI || 'mongodb://localhost:27017/status-calculator';
 
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
-
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('Backend is running');
 });
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log(`[socket] client connected: ${socket.id}`);
+
+  socket.on('update_graph', (payload: { graph: GraphState }) => {
+    try {
+      const results = calculate(payload.graph);
+      socket.emit('calc_result', results);
+    } catch (err) {
+      console.error('[calcEngine] error:', err);
+      socket.emit('calc_error', { message: (err as Error).message });
+    }
+  });
+
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log(`[socket] client disconnected: ${socket.id}`);
   });
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

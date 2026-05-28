@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import type { FlowNodeData } from '../../store/useStore';
+import { useStore, type FlowNodeData } from '../../store/useStore';
 import type { NodeData } from '../../../../shared/types';
 
 const NODE_STYLES = {
@@ -20,23 +20,34 @@ const NODE_STYLES = {
 } as const;
 
 const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
+  id,
   data,
   selected,
   type,
 }) => {
+  const deleteNode = useStore((s) => s.deleteNode);
+  const calcResult = useStore((s) => s.results[id]);
+
   const nodeType = (type as NodeData['type']) ?? 'input';
-  const style = NODE_STYLES[nodeType] ?? NODE_STYLES.input;
+  const style =
+    NODE_STYLES[nodeType as keyof typeof NODE_STYLES] ?? NODE_STYLES.input;
+  const isOutput = nodeType === 'output';
+
   const handleStyle = {
     background: style.handleColor,
-    width: 10,
-    height: 10,
+    width: 14,
+    height: 14,
     border: '2px solid white',
     boxShadow: '0 0 0 1px ' + style.handleColor,
   };
 
+  // Output nodes display the backend-calculated result
+  const displayValue = isOutput ? (calcResult ?? 0) : data.value;
+
   return (
     <div
       className={`
+        relative group
         w-full h-full rounded-lg border-2 ${style.border} bg-white
         flex flex-col overflow-hidden
         transition-shadow duration-150
@@ -49,16 +60,36 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
 
-      {/* Header */}
+      {/* Header — delete button lives here, away from handles */}
       <div
         className={`${style.header} px-3 py-1 flex items-center justify-between shrink-0`}
       >
         <span className="text-white text-[9px] font-bold tracking-[0.2em]">
           {style.typeLabel}
         </span>
-        {data.isPercentage && (
-          <span className="text-white/70 text-[10px] font-semibold">%</span>
-        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteNode(id);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          title="Delete node"
+          className="nodrag opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded text-white/60 hover:text-white hover:bg-white/20 transition-all duration-150"
+        >
+          <svg
+            className="w-2.5 h-2.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Body */}
@@ -68,13 +99,21 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
             {data.label}
           </p>
         ) : null}
-        <p className="text-base font-bold text-slate-800 leading-none">
-          {data.value}
+        <p
+          className={`font-bold leading-none ${
+            isOutput ? 'text-lg text-emerald-600' : 'text-base text-slate-800'
+          }`}
+        >
+          {isOutput
+            ? Number.isInteger(displayValue)
+              ? displayValue
+              : displayValue.toFixed(4).replace(/\.?0+$/, '')
+            : displayValue}
           {data.isPercentage ? '%' : ''}
         </p>
-        <p className="text-[9px] text-slate-300 truncate leading-none">
-          {data.multiplierZone || 'default'}
-        </p>
+        {isOutput && (
+          <p className="text-[9px] text-emerald-400 leading-none">calculated</p>
+        )}
       </div>
 
       <Handle type="source" position={Position.Right} style={handleStyle} />

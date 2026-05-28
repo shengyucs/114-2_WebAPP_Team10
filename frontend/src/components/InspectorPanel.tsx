@@ -1,34 +1,57 @@
-import type React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import SectionHeader from './ui/SectionHeader';
 
-// key-based remount ensures the input shows fresh value when selection changes
+// Shows empty string when value is 0 so users don't have to clear "0" first.
+// Commits to store on blur; placeholder="0" shows the implied default.
+// key={node.id + label} in parent ensures remount when a different node is selected.
 const NumInput: React.FC<{
   label: string;
   value: number;
-  onChange: (v: number) => void;
+  onChange?: (v: number) => void;
   min?: number;
-}> = ({ label, value, onChange, min }) => (
-  <label className="flex flex-col gap-1">
-    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-      {label}
-    </span>
-    <input
-      type="number"
-      min={min}
-      value={value}
-      onChange={(e) => {
-        const n = parseFloat(e.target.value);
-        if (!isNaN(n)) onChange(n);
-      }}
-      className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-    />
-  </label>
-);
+  readOnly?: boolean;
+}> = ({ label, value, onChange, min, readOnly = false }) => {
+  const [raw, setRaw] = useState(() => (value === 0 ? '' : String(value)));
+
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={min}
+        value={raw}
+        readOnly={readOnly}
+        placeholder="0"
+        onChange={(e) => {
+          if (readOnly) return;
+          setRaw(e.target.value);
+          const n = parseFloat(e.target.value);
+          if (!isNaN(n)) onChange?.(n);
+        }}
+        onBlur={() => {
+          if (readOnly) return;
+          const n = parseFloat(raw);
+          const committed = isNaN(n) ? 0 : n;
+          onChange?.(committed);
+          setRaw(committed === 0 ? '' : String(committed));
+        }}
+        className={`w-full px-2.5 py-1.5 text-sm border rounded-md transition-colors ${
+          readOnly
+            ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+            : 'border-slate-200 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white'
+        }`}
+      />
+    </label>
+  );
+};
 
 const InspectorPanel: React.FC = () => {
   const nodes = useStore((s) => s.nodes);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
+  const results = useStore((s) => s.results);
   const patchNode = useStore((s) => s.patchNode);
 
   const node = nodes.find((n) => n.id === selectedNodeId);
@@ -49,49 +72,13 @@ const InspectorPanel: React.FC = () => {
   const { data } = node;
   const width = (node.style?.width as number | undefined) ?? 180;
   const height = (node.style?.height as number | undefined) ?? 90;
+  const isOutput = node.type === 'output';
   const isOperator = node.type === 'operator';
-
-  const OPERATORS: {
-    value: '+' | '-' | '*' | '/';
-    symbol: string;
-    label: string;
-  }[] = [
-    { value: '+', symbol: '+', label: 'Add' },
-    { value: '-', symbol: '−', label: 'Subtract' },
-    { value: '*', symbol: '×', label: 'Multiply' },
-    { value: '/', symbol: '÷', label: 'Divide' },
-  ];
+  const isReadOnly = isOutput || isOperator;
+  const calcResult = results[node.id] ?? 0;
 
   return (
-    <div className="flex flex-col gap-5 py-3">
-      {/* Operation — only for operator nodes */}
-      {isOperator && (
-        <section className="px-4">
-          <SectionHeader title="Operation" />
-          <div className="grid grid-cols-4 gap-1.5">
-            {OPERATORS.map((op) => (
-              <button
-                key={op.value}
-                title={op.label}
-                onClick={() =>
-                  patchNode(node.id, { data: { operator: op.value } })
-                }
-                className={`
-                  py-2 rounded-md border-2 text-lg font-bold transition-all duration-100
-                  ${
-                    (data.operator ?? '+') === op.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-sm'
-                      : 'border-slate-200 bg-white text-slate-500 hover:border-amber-400 hover:text-amber-500'
-                  }
-                `}
-              >
-                {op.symbol}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
+    <div key={node.id} className="flex flex-col gap-5 py-3">
       {/* Identification */}
       <section className="px-4">
         <SectionHeader title="Identification" />
@@ -111,39 +98,68 @@ const InspectorPanel: React.FC = () => {
         </label>
       </section>
 
+      {/* Operator selector — only for operator nodes */}
+      {isOperator && (
+        <section className="px-4">
+          <SectionHeader title="Operation" />
+          <div className="grid grid-cols-4 gap-1.5">
+            {(['+', '-', '*', '/'] as const).map((op) => (
+              <button
+                key={op}
+                onClick={() => patchNode(node.id, { data: { operator: op } })}
+                className={`py-1.5 text-sm font-bold rounded-md border transition-colors ${
+                  data.operator === op
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
+                }`}
+              >
+                {op === '*' ? '×' : op === '/' ? '÷' : op}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Value */}
       <section className="px-4">
         <SectionHeader title="Value" />
         <div className="flex flex-col gap-3">
-          <NumInput
-            label="Value"
-            value={data.value}
-            onChange={(v) => patchNode(node.id, { data: { value: v } })}
-          />
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={data.isPercentage}
-              onChange={(e) =>
-                patchNode(node.id, { data: { isPercentage: e.target.checked } })
-              }
-              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer"
-            />
-            <span className="text-sm text-slate-600">Is Percentage (%)</span>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Zone
-            </span>
-            <input
-              type="text"
-              value={data.multiplierZone}
-              onChange={(e) =>
-                patchNode(node.id, { data: { multiplierZone: e.target.value } })
-              }
-              className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-            />
-          </label>
+          {isReadOnly ? (
+            /* Calculated result display for output/operator */
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Calculated Result
+              </span>
+              <div className="w-full px-2.5 py-2 text-sm font-bold border border-emerald-200 rounded-md bg-emerald-50 text-emerald-700">
+                {Number.isInteger(calcResult)
+                  ? calcResult
+                  : calcResult.toFixed(4).replace(/\.?0+$/, '')}
+              </div>
+            </div>
+          ) : (
+            <>
+              <NumInput
+                label="Value"
+                value={data.value}
+                onChange={(v) => patchNode(node.id, { data: { value: v } })}
+              />
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={data.isPercentage}
+                  onChange={(e) =>
+                    patchNode(node.id, {
+                      data: { isPercentage: e.target.checked },
+                    })
+                  }
+                  className="w-3.5 h-3.5 accent-blue-500 cursor-pointer"
+                />
+                <span className="text-sm text-slate-600">
+                  Is Percentage (%)
+                </span>
+              </label>
+            </>
+          )}
         </div>
       </section>
 
