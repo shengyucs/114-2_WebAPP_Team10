@@ -1,8 +1,4 @@
-import type {
-  GraphState,
-  NodeData,
-  EdgeData,
-} from '../../../../shared/types.js';
+import type { GraphState, NodeData, EdgeData } from '../../../shared/types.js';
 
 export class CircularDependencyError extends Error {
   constructor() {

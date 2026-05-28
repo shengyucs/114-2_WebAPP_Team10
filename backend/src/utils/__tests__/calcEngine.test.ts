@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculate } from '../calcEngine.js';
-import type { GraphState } from '../../../../../shared/types.js';
+import type { GraphState } from '../../../../shared/types.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

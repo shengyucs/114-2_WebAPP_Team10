@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { calculate } from './utils/calcEngine.js';
-import type { GraphState } from '../../../shared/types.js';
+import type { GraphState } from '../../shared/types.js';
 
 dotenv.config();
 
