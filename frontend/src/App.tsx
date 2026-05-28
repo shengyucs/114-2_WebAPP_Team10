@@ -1,9 +1,16 @@
+import { useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
 import ToolboxItem from './components/ToolboxItem';
 import InspectorPanel from './components/InspectorPanel';
+import { initWebSocket, destroyWebSocket } from './services/websocket';
 
 function App() {
+  useEffect(() => {
+    initWebSocket();
+    return () => destroyWebSocket();
+  }, []);
+
   return (
     <div className="flex flex-col flex-1 w-full h-full bg-bg-secondary p-1">
       <div className="flex flex-1 h-full relative overflow-hidden bg-bg-secondary gap-1">

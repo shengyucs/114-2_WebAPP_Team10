@@ -24,13 +24,16 @@ interface StoreState {
   nodes: Node<FlowNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
+  results: Record<string, number>;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   setNodes: (nodes: Node<FlowNodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setResults: (results: Record<string, number>) => void;
   addNode: (type: NodeData['type']) => void;
+  deleteNode: (id: string) => void;
   patchNode: (id: string, patch: NodePatch) => void;
   getGraphState: () => GraphState;
 }
@@ -39,6 +42,7 @@ export const useStore = create<StoreState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  results: {},
 
   onNodesChange: (changes) => {
     set({ nodes: applyNodeChanges(changes, get().nodes) });
@@ -55,11 +59,11 @@ export const useStore = create<StoreState>((set, get) => ({
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setResults: (results) => set({ results }),
 
   addNode: (type) => {
     const id = crypto.randomUUID();
     const count = get().nodes.length;
-    // Grid placement: 4 columns, rows spaced by 140px
     const col = count % 4;
     const row = Math.floor(count / 4);
     const newNode: Node<FlowNodeData> = {
@@ -69,13 +73,20 @@ export const useStore = create<StoreState>((set, get) => ({
       data: {
         label: '',
         value: 0,
-        multiplierZone: 'default',
         isPercentage: false,
         ...(type === 'operator' ? { operator: '+' as const } : {}),
       },
       style: { width: 180, height: 90 },
     };
     set({ nodes: [...get().nodes, newNode] });
+  },
+
+  deleteNode: (id) => {
+    set({
+      nodes: get().nodes.filter((n) => n.id !== id),
+      edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+      selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId,
+    });
   },
 
   patchNode: (id, patch) => {
@@ -104,6 +115,8 @@ export const useStore = create<StoreState>((set, get) => ({
       edges: edges.map((e) => ({
         source: e.source,
         target: e.target,
+        sourceHandle: e.sourceHandle ?? undefined,
+        targetHandle: e.targetHandle ?? undefined,
       })),
     };
   },
