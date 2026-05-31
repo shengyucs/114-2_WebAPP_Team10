@@ -11,6 +11,13 @@ const inputNode = (id: string, value: number) => ({
   isPercentage: false,
 });
 
+const pctInputNode = (id: string, value: number) => ({
+  id,
+  type: 'input' as const,
+  value,
+  isPercentage: true,
+});
+
 const outputNode = (id: string) => ({
   id,
   type: 'output' as const,
@@ -104,7 +111,54 @@ describe('calcEngine — Simple Sum Aggregation', () => {
   });
 });
 
-// ─── Test Suite 3: Operator Node Computations ───────────────────────────────
+// ─── Test Suite 3: isPercentage Conversion ──────────────────────────────────
+
+describe('calcEngine — isPercentage', () => {
+  it('converts value=15 with isPercentage=true to 1.15', () => {
+    const graph: GraphState = {
+      nodes: [pctInputNode('a', 15), outputNode('out')],
+      edges: [edge('a', 'out')],
+    };
+    expect(calculate(graph)['a']).toBe(1.15);
+  });
+
+  it('applies percentage bonus: base × (1 + pct/100)', () => {
+    const graph: GraphState = {
+      nodes: [
+        inputNode('base', 200),
+        pctInputNode('bonus', 15),
+        operatorNode('op', '*'),
+        outputNode('out'),
+      ],
+      edges: [
+        edge('base', 'op', 'a'),
+        edge('bonus', 'op', 'b'),
+        edge('op', 'out'),
+      ],
+    };
+    // 200 × 1.15 = 230 (floating point: use toBeCloseTo)
+    expect(calculate(graph)['op']).toBeCloseTo(230, 10);
+    expect(calculate(graph)['out']).toBeCloseTo(230, 10);
+  });
+
+  it('converts value=0 with isPercentage=true to 1.0 (zero bonus)', () => {
+    const graph: GraphState = {
+      nodes: [pctInputNode('a', 0), outputNode('out')],
+      edges: [edge('a', 'out')],
+    };
+    expect(calculate(graph)['a']).toBe(1.0);
+  });
+
+  it('converts value=100 with isPercentage=true to 2.0 (double)', () => {
+    const graph: GraphState = {
+      nodes: [pctInputNode('a', 100), outputNode('out')],
+      edges: [edge('a', 'out')],
+    };
+    expect(calculate(graph)['a']).toBe(2.0);
+  });
+});
+
+// ─── Test Suite 4: Operator Node Computations ───────────────────────────────
 
 describe('calcEngine — Operator Node', () => {
   const makeOpGraph = (
