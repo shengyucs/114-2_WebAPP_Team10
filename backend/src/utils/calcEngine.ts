@@ -53,7 +53,7 @@ function topologicalSort(nodes: NodeData[], edges: EdgeData[]): string[] {
  * Returns a map of { nodeId → computed output value }.
  *
  * Rules:
- * - Input node: output = node.value
+ * - Input node: output = node.value (if isPercentage, output = 1 + value/100)
  * - Output node: output = sum of all upstream node values
  * - Operator node: output = A [op] B using handle-based inputs (default 0)
  * - The Zero Rule: any missing/disconnected input = 0
@@ -81,7 +81,8 @@ export function calculate(graph: GraphState): Record<string, number> {
     const incoming = incomingEdges.get(id) ?? [];
 
     if (node.type === 'input') {
-      results[id] = node.value ?? 0;
+      const raw = node.value ?? 0;
+      results[id] = node.isPercentage ? 1 + raw / 100 : raw;
     } else if (node.type === 'output') {
       // Sum all upstream values
       results[id] = incoming.reduce(
