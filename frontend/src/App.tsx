@@ -22,14 +22,14 @@ function App() {
             </p>
             <ToolboxItem
               type="input"
-              label="Input Node"
+              label="Constant Node"
               description="Defines a base stat value"
               headerBg="bg-blue-500"
               borderColor="border-blue-200 hover:border-blue-400"
             />
             <ToolboxItem
               type="output"
-              label="Output Node"
+              label="Result Node"
               description="Displays the final result"
               headerBg="bg-emerald-500"
               borderColor="border-emerald-200 hover:border-emerald-400"

@@ -146,7 +146,10 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
             isPercentage: n.isPercentage,
             operator: n.operator,
           },
-          style: { width: 180, height: 90 },
+          style: {
+            width: n.type === 'operator' ? 56 : 180,
+            height: n.type === 'operator' ? 56 : 90,
+          },
         };
       });
 

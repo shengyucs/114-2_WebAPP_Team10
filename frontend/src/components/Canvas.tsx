@@ -62,7 +62,10 @@ const Canvas: React.FC = () => {
               isPercentage,
               ...(operator !== undefined ? { operator } : {}),
             },
-            style: { width: 180, height: 90 },
+            style: {
+              width: type === 'operator' ? 56 : 180,
+              height: type === 'operator' ? 56 : 90,
+            },
           };
         },
       );

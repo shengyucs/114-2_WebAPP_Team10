@@ -79,7 +79,10 @@ export const useStore = create<StoreState>((set, get) => ({
         isPercentage: false,
         ...(type === 'operator' ? { operator: '+' as const } : {}),
       },
-      style: { width: 180, height: 90 },
+      style: {
+        width: type === 'operator' ? 56 : 180,
+        height: type === 'operator' ? 56 : 90,
+      },
     };
     set({ nodes: [...get().nodes, newNode] });
   },

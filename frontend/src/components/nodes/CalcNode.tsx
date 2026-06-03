@@ -9,13 +9,13 @@ const NODE_STYLES = {
     border: 'border-blue-400',
     header: 'bg-blue-500',
     handleColor: '#3b82f6',
-    typeLabel: 'INPUT',
+    typeLabel: 'CONSTANT',
   },
   output: {
     border: 'border-emerald-400',
     header: 'bg-emerald-500',
     handleColor: '#10b981',
-    typeLabel: 'OUTPUT',
+    typeLabel: 'RESULT',
   },
 } as const;
 
@@ -49,7 +49,7 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
       className={`
         relative group
         w-full h-full rounded-lg border-2 ${style.border} bg-white
-        flex flex-col overflow-hidden
+        flex flex-col
         transition-shadow duration-150
         ${
           selected
@@ -58,11 +58,9 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
         }
       `}
     >
-      <Handle type="target" position={Position.Left} style={handleStyle} />
-
       {/* Header — delete button lives here, away from handles */}
       <div
-        className={`${style.header} px-3 py-1 flex items-center justify-between shrink-0`}
+        className={`${style.header} px-3 py-1 flex items-center justify-between shrink-0 rounded-t-[6px]`}
       >
         <span className="text-white text-[9px] font-bold tracking-[0.2em]">
           {style.typeLabel}
@@ -92,8 +90,13 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
         </button>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 flex flex-col items-center justify-center px-3 py-1 gap-0.5 min-h-0">
+      {/* Body — handles are placed here to center ports vertically relative to this section */}
+      <div className="relative flex-1 flex flex-col items-center justify-center px-3 py-1 gap-0.5 min-h-0 rounded-b-lg">
+        {/* Left target handle — hidden for CONSTANT nodes (output-only; no incoming connections) */}
+        {isOutput && (
+          <Handle type="target" position={Position.Left} style={handleStyle} />
+        )}
+
         {data.label ? (
           <p className="text-[10px] text-slate-500 truncate w-full text-center leading-none">
             {data.label}
@@ -114,9 +117,10 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
         {isOutput && (
           <p className="text-[9px] text-emerald-400 leading-none">calculated</p>
         )}
-      </div>
 
-      <Handle type="source" position={Position.Right} style={handleStyle} />
+        {/* Right source handle */}
+        <Handle type="source" position={Position.Right} style={handleStyle} />
+      </div>
     </div>
   );
 };
