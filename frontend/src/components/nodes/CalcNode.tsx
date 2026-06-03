@@ -160,10 +160,6 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
           </p>
         )}
 
-        {isOutput && (
-          <p className="text-[9px] text-emerald-400 leading-none">calculated</p>
-        )}
-
         {/* Right source handle */}
         <Handle type="source" position={Position.Right} style={handleStyle} />
       </div>
