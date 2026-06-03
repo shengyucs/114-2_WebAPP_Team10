@@ -112,14 +112,14 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
       </div>
 
       {/* Body — handles are placed here to center ports vertically relative to this section */}
-      <div className="relative flex-1 flex flex-col items-center justify-center px-3 py-1 gap-0.5 min-h-0 rounded-b-lg">
+      <div className="relative flex-1 flex flex-col items-center justify-center px-3 py-1 gap-1.5 min-h-0 rounded-b-lg">
         {/* Left target handle — hidden for CONSTANT nodes (output-only; no incoming connections) */}
         {isOutput && (
           <Handle type="target" position={Position.Left} style={handleStyle} />
         )}
 
         {data.label ? (
-          <p className="text-[10px] text-slate-500 truncate w-full text-center leading-none">
+          <p className="text-[10px] text-slate-500 truncate w-full text-center leading-tight">
             {data.label}
           </p>
         ) : null}
@@ -144,7 +144,7 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
                 setIsEditing(true);
               }
             }}
-            className={`font-bold leading-none select-none ${
+            className={`font-bold leading-tight select-none ${
               isOutput
                 ? 'text-lg text-emerald-600'
                 : 'text-base text-slate-800 hover:text-blue-600 cursor-pointer'
