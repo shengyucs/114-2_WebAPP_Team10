@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -7,6 +7,7 @@ import ReactFlow, {
   Panel,
 } from 'reactflow';
 import type { Node } from 'reactflow';
+import LZString from 'lz-string';
 import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
 import { useGoogleStore } from '../store/useGoogleStore';
@@ -14,6 +15,8 @@ import CalcNode from './nodes/CalcNode';
 import OperatorNode from './nodes/OperatorNode';
 import SaveDialog from './features/SaveDialog';
 import LoadDialog from './features/LoadDialog';
+import type { GraphState } from '../../../shared/types';
+import type { FlowNodeData } from '../store/useStore';
 
 const nodeTypes = {
   input: CalcNode,
@@ -29,11 +32,87 @@ const Canvas: React.FC = () => {
     onEdgesChange,
     onConnect,
     setSelectedNodeId,
+    setNodes,
+    setEdges,
+    getGraphState,
   } = useStore();
 
   const { isConnected, userInfo, disconnect, connect } = useGoogleStore();
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // On mount: if the URL hash matches #/s/{data}, decompress and load the graph
+  useEffect(() => {
+    const hash = window.location.hash;
+    const PREFIX = '#/s/';
+    if (!hash.startsWith(PREFIX)) return;
+
+    const encoded = hash.slice(PREFIX.length);
+    const json = LZString.decompressFromEncodedURIComponent(encoded);
+    if (!json) return;
+
+    let state: GraphState;
+    try {
+      state = JSON.parse(json) as GraphState;
+    } catch {
+      return;
+    }
+
+    // Map shared NodeData to ReactFlow Node with layout positions and dimensions
+    const flowNodes: Node<FlowNodeData>[] = state.nodes.map(
+      (nodeData, index) => {
+        const col = index % 4;
+        const row = Math.floor(index / 4);
+        const { id, type, label, value, isPercentage, operator } = nodeData;
+        return {
+          id,
+          type,
+          position: { x: 80 + col * 220, y: 80 + row * 140 },
+          data: {
+            label: label ?? '',
+            value,
+            isPercentage,
+            ...(operator !== undefined ? { operator } : {}),
+          },
+          style: { width: 180, height: 90 },
+        };
+      },
+    );
+
+    // Map shared EdgeData to ReactFlow Edge
+    const flowEdges = state.edges.map((edgeData) => ({
+      id: `e-${edgeData.source}-${edgeData.target}-${edgeData.targetHandle ?? ''}`,
+      source: edgeData.source,
+      target: edgeData.target,
+      sourceHandle: edgeData.sourceHandle,
+      targetHandle: edgeData.targetHandle,
+    }));
+
+    setNodes(flowNodes);
+    setEdges(flowEdges);
+
+    // Clear the hash so refreshing does not re-load the shared state
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + window.location.search,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Compresses the current graph state and copies a share URL to the clipboard. */
+  const handleShare = useCallback(() => {
+    const state = getGraphState();
+    const compressed = LZString.compressToEncodedURIComponent(
+      JSON.stringify(state),
+    );
+    const url = `${window.location.origin}${window.location.pathname}#/s/${compressed}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, [getGraphState]);
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -121,6 +200,13 @@ const Canvas: React.FC = () => {
               </button>
 
               <button
+                onClick={handleShare}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-200 rounded-lg transition-all duration-150"
+              >
+                {shareCopied ? 'Copied!' : 'Share'}
+              </button>
+
+              <button
                 onClick={disconnect}
                 title="Disconnect Account"
                 className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-50 active:bg-slate-100 transition-colors"
@@ -141,26 +227,36 @@ const Canvas: React.FC = () => {
               </button>
             </div>
           ) : (
-            /* Minimalist Google Drive Trigger Button with Cloud SVG, NO custom google logo */
-            <button
-              onClick={() => connect()}
-              className="group flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px]"
-            >
-              <svg
-                className="w-4 h-4 text-slate-500 transition-transform duration-300 group-hover:scale-110"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+            <div className="flex items-center gap-2">
+              {/* Share button — available without login */}
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px]"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
-                />
-              </svg>
-              Connect Google Drive
-            </button>
+                {shareCopied ? 'Copied!' : 'Share'}
+              </button>
+
+              {/* Minimalist Google Drive Trigger Button with Cloud SVG, NO custom google logo */}
+              <button
+                onClick={() => connect()}
+                className="group flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px]"
+              >
+                <svg
+                  className="w-4 h-4 text-slate-500 transition-transform duration-300 group-hover:scale-110"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+                  />
+                </svg>
+                Connect Google Drive
+              </button>
+            </div>
           )}
         </Panel>
       </ReactFlow>
