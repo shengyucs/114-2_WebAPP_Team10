@@ -149,6 +149,52 @@ export const useStore = create<StoreState>((set, get) => ({
       levelGroups.get(level)!.push(node.id);
     }
 
+    // Helper: Determine node height based on its type
+    const getNodeHeight = (type: string): number => {
+      if (type === 'operator') return 56;
+      if (type === 'conditional') return 90;
+      return 75; // constant (input) and result (output) height
+    };
+
+    // Helper: Determine handle relative offset ratio based on node type and handleId
+    const getHandleRatio = (
+      type: string,
+      handleId: string | undefined,
+      isSource: boolean,
+    ): number => {
+      if (isSource) return 0.5; // all output/source handles center vertically on the node
+
+      if (type === 'operator') {
+        if (handleId === 'a') return 0.3;
+        if (handleId === 'b') return 0.7;
+        return 0.5;
+      }
+      if (type === 'conditional') {
+        if (handleId === 'cond') return 0.2;
+        if (handleId === 't') return 0.5;
+        if (handleId === 'f') return 0.8;
+        return 0.5;
+      }
+      return 0.5;
+    };
+
+    // Helper: Calculate absolute handle Y position
+    const getAbsoluteHandleY = (
+      nodeY: number,
+      type: string,
+      handleId: string | undefined,
+      isSource: boolean,
+    ): number => {
+      const height = getNodeHeight(type);
+      const ratio = getHandleRatio(type, handleId, isSource);
+      return nodeY + height * ratio;
+    };
+
+    // Helper to find the node definition by ID
+    const findNodeData = (id: string) => {
+      return nodes.find((n) => n.id === id);
+    };
+
     // Crossing minimization using a simple 2-pass Barycenter heuristic
     const maxLevel = Math.max(...Array.from(levelGroups.keys()), 0);
     const rowIndexes = new Map<string, number>();
@@ -161,20 +207,34 @@ export const useStore = create<StoreState>((set, get) => ({
       });
     }
 
-    // Pass 1: Forward Pass (Level 1 to maxLevel) - align with parents
+    // Pass 1: Forward Pass (Level 1 to maxLevel) - align with parent output handle y-positions
     for (let l = 1; l <= maxLevel; l++) {
       const group = levelGroups.get(l) ?? [];
       const barycenters = group.map((nodeId) => {
-        const nodeParents = parents.get(nodeId) ?? [];
-        const assignedParents = nodeParents.filter((pId) =>
-          rowIndexes.has(pId),
+        // Find edges entering this node
+        const incomingEdges = edges.filter((e) => e.target === nodeId);
+        const activeEdges = incomingEdges.filter((e) =>
+          rowIndexes.has(e.source),
         );
 
         const score =
-          assignedParents.length > 0
-            ? assignedParents.reduce((s, pId) => s + rowIndexes.get(pId)!, 0) /
-              assignedParents.length
-            : group.indexOf(nodeId);
+          activeEdges.length > 0
+            ? activeEdges.reduce((sum, e) => {
+                const parentRowIndex = rowIndexes.get(e.source)!;
+                const parentNode = findNodeData(e.source);
+                const parentType = parentNode?.type ?? 'input';
+                const parentY = parentRowIndex * 140 + 80;
+
+                // Get absolute Y of the parent's source handle
+                const sourceHandleY = getAbsoluteHandleY(
+                  parentY,
+                  parentType,
+                  e.sourceHandle ?? undefined,
+                  true,
+                );
+                return sum + sourceHandleY;
+              }, 0) / activeEdges.length
+            : group.indexOf(nodeId) * 140 + 80;
 
         return { nodeId, score };
       });
@@ -189,20 +249,34 @@ export const useStore = create<StoreState>((set, get) => ({
       });
     }
 
-    // Pass 2: Backward Pass (maxLevel - 1 down to 0) - align with children
+    // Pass 2: Backward Pass (maxLevel - 1 down to 0) - align with child input handle y-positions
     for (let l = maxLevel - 1; l >= 0; l--) {
       const group = levelGroups.get(l) ?? [];
       const barycenters = group.map((nodeId) => {
-        const nodeChildren = children.get(nodeId) ?? [];
-        const assignedChildren = nodeChildren.filter((cId) =>
-          rowIndexes.has(cId),
+        // Find edges leaving this node
+        const outgoingEdges = edges.filter((e) => e.source === nodeId);
+        const activeEdges = outgoingEdges.filter((e) =>
+          rowIndexes.has(e.target),
         );
 
         const score =
-          assignedChildren.length > 0
-            ? assignedChildren.reduce((s, cId) => s + rowIndexes.get(cId)!, 0) /
-              assignedChildren.length
-            : group.indexOf(nodeId);
+          activeEdges.length > 0
+            ? activeEdges.reduce((sum, e) => {
+                const childRowIndex = rowIndexes.get(e.target)!;
+                const childNode = findNodeData(e.target);
+                const childType = childNode?.type ?? 'output';
+                const childY = childRowIndex * 140 + 80;
+
+                // Get absolute Y of the child's target handle
+                const targetHandleY = getAbsoluteHandleY(
+                  childY,
+                  childType,
+                  e.targetHandle ?? undefined,
+                  false,
+                );
+                return sum + targetHandleY;
+              }, 0) / activeEdges.length
+            : group.indexOf(nodeId) * 140 + 80;
 
         return { nodeId, score };
       });
