@@ -64,7 +64,6 @@ describe('GoogleDriveService (Unit Tests)', () => {
         id: '1',
         type: 'input',
         value: 10,
-        multiplierZone: 'default',
         isPercentage: false,
       },
     ],

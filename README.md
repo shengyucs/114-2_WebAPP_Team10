@@ -100,6 +100,31 @@ npm run docker:dev
 
 ---
 
+## 💿 雲端與生產環境部署 (Production Deployment)
+
+為了使專案能夠輕鬆部署於任何伺服器或雲端平台，本專案提供了一個**單一容器 (Single Container)** 的生產環境封裝方案：
+
+1. **靜態資源打包**：在 Docker 構建階段中，前端 React App 會被編譯為靜態檔案。
+2. **單一埠口監聽**：後端 Express 伺服器在生產模式 (`NODE_ENV=production`) 下，將自動掛載並託管前端靜態資源，並於單一埠口 `5000` 同時處理網頁服務與 WebSocket 連線。
+
+### 🚀 快速啟動生產環境容器
+
+您只需在安裝有 Docker 的伺服器上執行以下指令：
+
+```bash
+# 使用生產配置構建與啟動容器
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+啟動完成後，您即可透過以下網址存取完整的應用程式：
+
+- 生產環境網址：`http://localhost:5000/`
+
+> [!NOTE]
+> 啟動時可透過環境變數 `PORT` 更改容器內的監聽埠口（預設為 5000）。
+
+---
+
 ## 🤝 開發與 Git 提交規範
 
 - **Git 分支隔離**: 嚴禁直接提交至 `main` 分支。請使用 `feat/`、`fix/` 或 `refactor/` 作為前綴建立開發分支。

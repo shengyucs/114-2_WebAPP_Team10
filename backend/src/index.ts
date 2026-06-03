@@ -25,9 +25,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
-app.get('/', (_req, res) => {
-  res.send('Backend is running');
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (_req, res) => {
+    res.send('Backend is running');
+  });
+}
 
 io.on('connection', (socket) => {
   console.log(`[socket] client connected: ${socket.id}`);

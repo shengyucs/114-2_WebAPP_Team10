@@ -83,12 +83,14 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
   });
 
   it('should transition to connected when connect() is called successfully', async () => {
-    mockServiceInstance.authorize.mockResolvedValue('mock-token-abc');
+    vi.mocked(mockServiceInstance.authorize).mockResolvedValue(
+      'mock-token-abc',
+    );
 
     const mockFiles = [
       { id: 'id1', name: 'Crit Setup.calc', createdTime: '2026-05-25' },
     ];
-    mockServiceInstance.listGraphs.mockResolvedValue(mockFiles);
+    vi.mocked(mockServiceInstance.listGraphs).mockResolvedValue(mockFiles);
 
     // Mock fetch for userinfo endpoint
     vi.stubGlobal(
@@ -154,7 +156,7 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
       isConnected: true,
     });
 
-    mockServiceInstance.listGraphs.mockResolvedValue([
+    vi.mocked(mockServiceInstance.listGraphs).mockResolvedValue([
       { id: 'f2', name: 'New Save.calc', createdTime: 'now' },
     ]);
 
@@ -178,7 +180,7 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
   });
 
   it('should fetch remote file and overwrite local canvas state when loadCloudGraph() is called', async () => {
-    mockServiceInstance.loadGraph.mockResolvedValue(mockGraph);
+    vi.mocked(mockServiceInstance.loadGraph).mockResolvedValue(mockGraph);
 
     await useGoogleStore.getState().loadCloudGraph('cloud-file-id');
 
