@@ -144,3 +144,16 @@
 .react-flow__attribution {
   display: none !important;
 }
+
+/* Chrome, Safari, Edge, Opera: Hide number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* Firefox: Hide number input spinners */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
