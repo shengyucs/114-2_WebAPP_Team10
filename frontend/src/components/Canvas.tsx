@@ -39,6 +39,7 @@ const Canvas: React.FC = () => {
     setNodes,
     setEdges,
     getGraphState,
+    layoutNodes,
   } = useStore();
 
   const { isConnected, userInfo, disconnect, connect } = useGoogleStore();
@@ -177,7 +178,7 @@ const Canvas: React.FC = () => {
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         isValidConnection={checkIsValidConnection}
-        deleteKeyCode="Delete"
+        deleteKeyCode={['Delete', 'Backspace']}
         connectionRadius={30}
         fitView
         snapToGrid={true}
@@ -213,6 +214,14 @@ const Canvas: React.FC = () => {
 
         {/* Clean, low-key Floating Cloud Panel integrated natively into ReactFlow top-right corner */}
         <Panel position="top-right" className="flex items-center gap-2">
+          {/* Auto Layout button — always visible, triggers topological node arrangement */}
+          <button
+            onClick={layoutNodes}
+            className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px]"
+          >
+            Auto Layout
+          </button>
+
           {isConnected ? (
             <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 p-1.5 rounded-xl shadow-md select-none">
               {/* User profile picture or custom initials */}

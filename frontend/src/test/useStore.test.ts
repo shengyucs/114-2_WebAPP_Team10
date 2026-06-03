@@ -78,4 +78,33 @@ describe('useStore (Zustand Store Unit Tests)', () => {
     expect(useStore.getState().nodes[0].id).toBe(n2);
     expect(useStore.getState().edges.length).toBe(0);
   });
+
+  it('should layout nodes topologically in left-to-right columns', () => {
+    useStore.getState().addNode('input'); // n1
+    useStore.getState().addNode('operator'); // n2
+    useStore.getState().addNode('output'); // n3
+    const nodes = useStore.getState().nodes;
+    const n1 = nodes[0].id;
+    const n2 = nodes[1].id;
+    const n3 = nodes[2].id;
+
+    // Connect n1 -> n2 -> n3
+    useStore.setState({
+      edges: [
+        { id: 'e1', source: n1, target: n2 },
+        { id: 'e2', source: n2, target: n3 },
+      ],
+    });
+
+    useStore.getState().layoutNodes();
+
+    const updatedNodes = useStore.getState().nodes;
+    const node1 = updatedNodes.find((n) => n.id === n1)!;
+    const node2 = updatedNodes.find((n) => n.id === n2)!;
+    const node3 = updatedNodes.find((n) => n.id === n3)!;
+
+    // Expect node1 X < node2 X < node3 X since n1 is root (level 0), n2 is level 1, n3 is level 2
+    expect(node1.position.x).toBeLessThan(node2.position.x);
+    expect(node2.position.x).toBeLessThan(node3.position.x);
+  });
 });

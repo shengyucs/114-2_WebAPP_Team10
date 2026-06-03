@@ -37,6 +37,7 @@ interface StoreState {
   deleteNode: (id: string) => void;
   patchNode: (id: string, patch: NodePatch) => void;
   getGraphState: () => GraphState;
+  layoutNodes: () => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -108,6 +109,56 @@ export const useStore = create<StoreState>((set, get) => ({
         return updated;
       }),
     });
+  },
+
+  layoutNodes: () => {
+    const { nodes, edges } = get();
+
+    // Build parent lookup: for each node, collect the IDs of its source (parent) nodes
+    const parents = new Map<string, string[]>();
+    for (const node of nodes) {
+      parents.set(node.id, []);
+    }
+    for (const edge of edges) {
+      parents.get(edge.target)?.push(edge.source);
+    }
+
+    // Memoized recursive helper: longest path (topological depth) from any root
+    const memo = new Map<string, number>();
+    const getLevel = (nodeId: string): number => {
+      if (memo.has(nodeId)) return memo.get(nodeId)!;
+      const nodeParents = parents.get(nodeId) ?? [];
+      const level =
+        nodeParents.length === 0
+          ? 0
+          : Math.max(...nodeParents.map((p) => getLevel(p) + 1));
+      memo.set(nodeId, level);
+      return level;
+    };
+
+    // Resolve levels for all nodes and group them into columns
+    const levelGroups = new Map<number, string[]>();
+    for (const node of nodes) {
+      const level = getLevel(node.id);
+      if (!levelGroups.has(level)) levelGroups.set(level, []);
+      levelGroups.get(level)!.push(node.id);
+    }
+
+    // Assign grid positions: x by column (level), y by row within the column
+    const updatedNodes = nodes.map((node) => {
+      const level = getLevel(node.id);
+      const group = levelGroups.get(level)!;
+      const rowIndex = group.indexOf(node.id);
+      return {
+        ...node,
+        position: {
+          x: level * 260 + 80,
+          y: rowIndex * 140 + 80,
+        },
+      };
+    });
+
+    set({ nodes: updatedNodes });
   },
 
   getGraphState: () => {
