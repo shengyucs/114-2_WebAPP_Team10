@@ -12,7 +12,10 @@ const OPERATOR_SYMBOLS: Record<string, string> = {
   min: 'MIN',
   '>': '>',
   '<': '<',
-  '==': '==',
+  '=': '=',
+  '>=': '≥',
+  '<=': '≤',
+  '!=': '≠',
 };
 
 const baseHandleStyle = {

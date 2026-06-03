@@ -205,19 +205,49 @@ const InspectorPanel: React.FC = () => {
         <section className="px-4">
           <SectionHeader title="Operation" />
           <div className="grid grid-cols-4 gap-1.5">
-            {(['+', '-', '*', '/'] as const).map((op) => (
-              <button
-                key={op}
-                onClick={() => patchNode(node.id, { data: { operator: op } })}
-                className={`py-1.5 text-sm font-bold rounded-md border transition-colors ${
-                  data.operator === op
-                    ? 'bg-amber-500 text-white border-amber-500'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
-                }`}
-              >
-                {op === '*' ? '×' : op === '/' ? '÷' : op}
-              </button>
-            ))}
+            {(
+              [
+                '+',
+                '-',
+                '*',
+                '/',
+                'max',
+                'min',
+                '>',
+                '<',
+                '=',
+                '>=',
+                '<=',
+                '!=',
+              ] as const
+            ).map((op) => {
+              let label = op as string;
+              if (op === '*') label = '×';
+              else if (op === '/') label = '÷';
+              else if (op === '-') label = '−';
+              else if (op === 'max') label = 'MAX';
+              else if (op === 'min') label = 'MIN';
+              else if (op === '=') label = '=';
+              else if (op === '>=') label = '≥';
+              else if (op === '<=') label = '≤';
+              else if (op === '!=') label = '≠';
+
+              const fontClass = label.length > 1 ? 'text-[10px]' : 'text-xs';
+
+              return (
+                <button
+                  key={op}
+                  onClick={() => patchNode(node.id, { data: { operator: op } })}
+                  className={`py-1.5 font-bold rounded-md border transition-colors ${fontClass} ${
+                    data.operator === op
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-slate-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </section>
       )}

@@ -127,8 +127,17 @@ export function calculate(graph: GraphState): Record<string, number> {
         case '<':
           results[id] = A < B ? 1 : 0;
           break;
-        case '==':
+        case '=':
           results[id] = A === B ? 1 : 0;
+          break;
+        case '>=':
+          results[id] = A >= B ? 1 : 0;
+          break;
+        case '<=':
+          results[id] = A <= B ? 1 : 0;
+          break;
+        case '!=':
+          results[id] = A !== B ? 1 : 0;
           break;
         default:
           results[id] = 0;

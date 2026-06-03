@@ -7,7 +7,19 @@ export interface NodeData {
   label?: string; // Optional display name
   value: number; // Numeric stat value (user-set; ignored for output/operator/conditional)
   isPercentage: boolean; // True if value is a percentage
-  operator?: '+' | '-' | '*' | '/' | 'max' | 'min' | '>' | '<' | '=='; // Only for operator nodes
+  operator?:
+    | '+'
+    | '-'
+    | '*'
+    | '/'
+    | 'max'
+    | 'min'
+    | '>'
+    | '<'
+    | '='
+    | '>='
+    | '<='
+    | '!='; // Only for operator nodes
 }
 
 export interface EdgeData {

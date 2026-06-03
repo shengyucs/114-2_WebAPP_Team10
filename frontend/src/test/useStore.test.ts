@@ -61,6 +61,35 @@ describe('useStore (Zustand Store Unit Tests)', () => {
     expect(updatedNode.position).toEqual({ x: 100, y: 150 });
   });
 
+  it('should patch operator node with new operators successfully', () => {
+    useStore.getState().addNode('operator');
+    const node = useStore.getState().nodes[0];
+
+    // Patch to '='
+    useStore.getState().patchNode(node.id, {
+      data: { operator: '=' },
+    });
+    expect(useStore.getState().nodes[0].data.operator).toBe('=');
+
+    // Patch to '>='
+    useStore.getState().patchNode(node.id, {
+      data: { operator: '>=' },
+    });
+    expect(useStore.getState().nodes[0].data.operator).toBe('>=');
+
+    // Patch to '<='
+    useStore.getState().patchNode(node.id, {
+      data: { operator: '<=' },
+    });
+    expect(useStore.getState().nodes[0].data.operator).toBe('<=');
+
+    // Patch to '!='
+    useStore.getState().patchNode(node.id, {
+      data: { operator: '!=' },
+    });
+    expect(useStore.getState().nodes[0].data.operator).toBe('!=');
+  });
+
   it('should delete a node and remove its associated edges', () => {
     useStore.getState().addNode('input'); // n1
     useStore.getState().addNode('output'); // n2

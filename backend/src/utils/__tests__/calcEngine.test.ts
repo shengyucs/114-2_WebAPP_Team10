@@ -25,7 +25,22 @@ const outputNode = (id: string) => ({
   isPercentage: false,
 });
 
-const operatorNode = (id: string, op: '+' | '-' | '*' | '/') => ({
+const operatorNode = (
+  id: string,
+  op:
+    | '+'
+    | '-'
+    | '*'
+    | '/'
+    | 'max'
+    | 'min'
+    | '>'
+    | '<'
+    | '='
+    | '>='
+    | '<='
+    | '!=',
+) => ({
   id,
   type: 'operator' as const,
   value: 0,
@@ -164,7 +179,19 @@ describe('calcEngine — Operator Node', () => {
   const makeOpGraph = (
     aVal: number,
     bVal: number,
-    op: '+' | '-' | '*' | '/',
+    op:
+      | '+'
+      | '-'
+      | '*'
+      | '/'
+      | 'max'
+      | 'min'
+      | '>'
+      | '<'
+      | '='
+      | '>='
+      | '<='
+      | '!=',
   ): GraphState => ({
     nodes: [
       inputNode('a', aVal),
@@ -215,38 +242,54 @@ describe('calcEngine — Operator Node', () => {
 
   it('calculates max(A, B)', () => {
     // max(3, 7) = 7, max(12, -2) = 12
-    expect(calculate(makeOpGraph(3, 7, 'max' as unknown as '+'))['op']).toBe(7);
-    expect(calculate(makeOpGraph(12, -2, 'max' as unknown as '+'))['op']).toBe(
-      12,
-    );
+    expect(calculate(makeOpGraph(3, 7, 'max'))['op']).toBe(7);
+    expect(calculate(makeOpGraph(12, -2, 'max'))['op']).toBe(12);
   });
 
   it('calculates min(A, B)', () => {
     // min(3, 7) = 3, min(12, -2) = -2
-    expect(calculate(makeOpGraph(3, 7, 'min' as unknown as '+'))['op']).toBe(3);
-    expect(calculate(makeOpGraph(12, -2, 'min' as unknown as '+'))['op']).toBe(
-      -2,
-    );
+    expect(calculate(makeOpGraph(3, 7, 'min'))['op']).toBe(3);
+    expect(calculate(makeOpGraph(12, -2, 'min'))['op']).toBe(-2);
   });
 
   it('calculates A > B comparison', () => {
     // 5 > 3 = 1, 3 > 5 = 0, 3 > 3 = 0
-    expect(calculate(makeOpGraph(5, 3, '>' as unknown as '+'))['op']).toBe(1);
-    expect(calculate(makeOpGraph(3, 5, '>' as unknown as '+'))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '>' as unknown as '+'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(5, 3, '>'))['op']).toBe(1);
+    expect(calculate(makeOpGraph(3, 5, '>'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '>'))['op']).toBe(0);
   });
 
   it('calculates A < B comparison', () => {
     // 3 < 5 = 1, 5 < 3 = 0, 3 < 3 = 0
-    expect(calculate(makeOpGraph(3, 5, '<' as unknown as '+'))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 3, '<' as unknown as '+'))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '<' as unknown as '+'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 5, '<'))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 3, '<'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '<'))['op']).toBe(0);
   });
 
-  it('calculates A == B comparison', () => {
-    // 5 == 5 = 1, 5 == 3 = 0
-    expect(calculate(makeOpGraph(5, 5, '==' as unknown as '+'))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 3, '==' as unknown as '+'))['op']).toBe(0);
+  it('calculates A = B comparison', () => {
+    // 5 = 5 = 1, 5 = 3 = 0
+    expect(calculate(makeOpGraph(5, 5, '='))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 3, '='))['op']).toBe(0);
+  });
+
+  it('calculates A >= B comparison', () => {
+    // 5 >= 3 = 1, 3 >= 5 = 0, 3 >= 3 = 1
+    expect(calculate(makeOpGraph(5, 3, '>='))['op']).toBe(1);
+    expect(calculate(makeOpGraph(3, 5, '>='))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '>='))['op']).toBe(1);
+  });
+
+  it('calculates A <= B comparison', () => {
+    // 3 <= 5 = 1, 5 <= 3 = 0, 3 <= 3 = 1
+    expect(calculate(makeOpGraph(3, 5, '<='))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 3, '<='))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '<='))['op']).toBe(1);
+  });
+
+  it('calculates A != B comparison', () => {
+    // 5 != 3 = 1, 5 != 5 = 0
+    expect(calculate(makeOpGraph(5, 3, '!='))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 5, '!='))['op']).toBe(0);
   });
 });
 
