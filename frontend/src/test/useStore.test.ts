@@ -182,4 +182,21 @@ describe('useStore (Zustand Store Unit Tests)', () => {
     // Its y coordinate should be 0 * 140 + 80 + 140 = 220 (vertically centered relative to the 3-node column)
     expect(node4.position.y).toBe(220);
   });
+
+  it('should autosave nodes and edges to localStorage when state changes', () => {
+    localStorage.removeItem('rpg_calc_autosave');
+
+    // Add a node which changes state.nodes
+    useStore.getState().addNode('input');
+    const nodes = useStore.getState().nodes;
+    const edges = useStore.getState().edges;
+
+    const savedRaw = localStorage.getItem('rpg_calc_autosave');
+    expect(savedRaw).not.toBeNull();
+
+    const saved = JSON.parse(savedRaw!);
+    expect(saved.nodes.length).toBe(1);
+    expect(saved.nodes[0].id).toBe(nodes[0].id);
+    expect(saved.edges).toEqual(edges);
+  });
 });

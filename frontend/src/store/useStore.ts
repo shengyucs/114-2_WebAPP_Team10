@@ -15,6 +15,41 @@ import { wouldIntroduceCycle } from '../utils/cycleDetection';
 // Data stored inside each ReactFlow node (excludes id & type, which live on the node wrapper)
 export type FlowNodeData = Omit<NodeData, 'id' | 'type'>;
 
+const AUTOSAVE_KEY = 'rpg_calc_autosave';
+
+interface AutosaveData {
+  nodes: Node<FlowNodeData>[];
+  edges: Edge[];
+}
+
+/** Returns true only when localStorage is accessible (guards against SSR and test environments). */
+const isLocalStorageAvailable = (): boolean =>
+  typeof window !== 'undefined' && window.localStorage != null;
+
+/** Reads persisted graph state from localStorage. Falls back to empty arrays on any error. */
+const loadAutosave = (): AutosaveData => {
+  if (!isLocalStorageAvailable()) return { nodes: [], edges: [] };
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return { nodes: [], edges: [] };
+    return JSON.parse(raw) as AutosaveData;
+  } catch {
+    return { nodes: [], edges: [] };
+  }
+};
+
+/** Writes the current nodes and edges to localStorage. Silently ignores quota or access errors. */
+const saveAutosave = (nodes: Node<FlowNodeData>[], edges: Edge[]): void => {
+  if (!isLocalStorageAvailable()) return;
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ nodes, edges }));
+  } catch {
+    // Ignore storage quota exceeded or permission errors
+  }
+};
+
+const savedState = loadAutosave();
+
 interface NodePatch {
   data?: Partial<FlowNodeData>;
   position?: { x: number; y: number };
@@ -41,8 +76,8 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => ({
-  nodes: [],
-  edges: [],
+  nodes: savedState.nodes,
+  edges: savedState.edges,
   selectedNodeId: null,
   results: {},
 
@@ -338,3 +373,11 @@ export const useStore = create<StoreState>((set, get) => ({
     };
   },
 }));
+
+// Persist only when nodes or edges change by reference, skipping unrelated state updates
+// (e.g. selectedNodeId changes or calculation results) to avoid unnecessary serialization.
+useStore.subscribe((state, prevState) => {
+  if (state.nodes !== prevState.nodes || state.edges !== prevState.edges) {
+    saveAutosave(state.nodes, state.edges);
+  }
+});
