@@ -1,19 +1,4 @@
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: status-calculator-db
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=status-calculator
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: .
@@ -28,11 +13,7 @@ services:
       - ./shared:/app/shared
     environment:
       - PORT=5000
-      - MONGODB_URI=mongodb://mongodb:27017/status-calculator
       - NODE_ENV=development
-    depends_on:
-      mongodb:
-        condition: service_healthy
 
   frontend:
     build:
@@ -49,7 +30,4 @@ services:
       - VITE_API_URL=http://localhost:5000
     depends_on:
       - backend
-
-volumes:
-  mongodb_data:
 

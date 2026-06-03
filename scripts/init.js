@@ -50,8 +50,7 @@ if (!fs.existsSync(backendEnvPath)) {
     fs.copyFileSync(backendEnvExamplePath, backendEnvPath);
     console.log(`${colors.green}   ✅ Copied from .env.example${colors.reset}`);
   } else {
-    const defaultEnv =
-      'PORT=5000\nMONGODB_URI=mongodb://localhost:27017/status-calculator';
+    const defaultEnv = 'PORT=5000';
     fs.writeFileSync(backendEnvPath, defaultEnv);
     console.log(
       `${colors.green}   ✅ Created with default values${colors.reset}`,
@@ -65,8 +64,7 @@ if (!fs.existsSync(backendEnvDockerPath)) {
   console.log(
     `\n${colors.cyan}📄 Setting up backend/.env.docker...${colors.reset}`,
   );
-  const dockerEnv =
-    'PORT=5000\nMONGODB_URI=mongodb://mongodb:27017/status-calculator\nNODE_ENV=development';
+  const dockerEnv = 'PORT=5000\nNODE_ENV=development';
   fs.writeFileSync(backendEnvDockerPath, dockerEnv);
   console.log(`${colors.green}   ✅ Created for Docker stack${colors.reset}`);
 }
