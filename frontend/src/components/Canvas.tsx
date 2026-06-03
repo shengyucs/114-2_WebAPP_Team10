@@ -15,6 +15,7 @@ import { useGoogleStore } from '../store/useGoogleStore';
 import { GoogleDriveService } from '../services/googleDrive';
 import CalcNode from './nodes/CalcNode';
 import OperatorNode from './nodes/OperatorNode';
+import ConditionalNode from './nodes/ConditionalNode';
 import SaveDialog from './features/SaveDialog';
 import LoadDialog from './features/LoadDialog';
 import type { GraphState } from '../../../shared/types';
@@ -24,6 +25,7 @@ const nodeTypes = {
   input: CalcNode,
   output: CalcNode,
   operator: OperatorNode,
+  conditional: ConditionalNode,
 };
 
 const Canvas: React.FC = () => {
@@ -63,8 +65,10 @@ const Canvas: React.FC = () => {
               ...(operator !== undefined ? { operator } : {}),
             },
             style: {
-              width: type === 'operator' ? 56 : 140,
-              height: type === 'operator' ? 56 : 75,
+              width:
+                type === 'operator' ? 56 : type === 'conditional' ? 70 : 140,
+              height:
+                type === 'operator' ? 56 : type === 'conditional' ? 90 : 75,
             },
           };
         },
@@ -193,12 +197,14 @@ const Canvas: React.FC = () => {
             if (n.type === 'input') return '#3b82f6';
             if (n.type === 'output') return '#10b981';
             if (n.type === 'operator') return '#f59e0b';
+            if (n.type === 'conditional') return '#8b5cf6';
             return '#d1d9e6';
           }}
           nodeColor={(n) => {
             if (n.type === 'input') return '#dbeafe';
             if (n.type === 'output') return '#d1fae5';
             if (n.type === 'operator') return '#fef3c7';
+            if (n.type === 'conditional') return '#ede9fe';
             return '#fff';
           }}
           maskColor="rgba(240, 244, 248, 0.6)"

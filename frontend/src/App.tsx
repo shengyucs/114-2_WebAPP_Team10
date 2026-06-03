@@ -38,6 +38,12 @@ function App() {
               headerBg="bg-amber-500"
               borderColor="border-amber-200 hover:border-amber-400"
             />
+            <ToolboxItem
+              type="conditional"
+              label="Conditional"
+              headerBg="bg-violet-500"
+              borderColor="border-violet-200 hover:border-violet-400"
+            />
           </div>
         </Sidebar>
 
