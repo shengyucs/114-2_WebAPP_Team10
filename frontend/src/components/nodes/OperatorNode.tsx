@@ -74,7 +74,7 @@ const OperatorNode: React.FC<NodeProps<FlowNodeData>> = ({
         }}
         onMouseDown={(e) => e.stopPropagation()}
         title="Delete node"
-        className="nodrag absolute top-0 right-0 opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded-full text-amber-700/60 hover:text-white hover:bg-amber-400 transition-all duration-150"
+        className="nodrag absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded-full bg-white border border-amber-300 text-amber-700/60 hover:text-white hover:bg-amber-400 shadow-sm transition-all duration-150"
       >
         <svg
           className="w-2.5 h-2.5"

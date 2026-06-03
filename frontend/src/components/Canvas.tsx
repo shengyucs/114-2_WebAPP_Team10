@@ -63,8 +63,8 @@ const Canvas: React.FC = () => {
               ...(operator !== undefined ? { operator } : {}),
             },
             style: {
-              width: type === 'operator' ? 56 : 180,
-              height: type === 'operator' ? 56 : 90,
+              width: type === 'operator' ? 56 : 140,
+              height: type === 'operator' ? 56 : 75,
             },
           };
         },

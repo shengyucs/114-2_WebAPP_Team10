@@ -23,21 +23,21 @@ function App() {
             <ToolboxItem
               type="input"
               label="Constant Node"
-              description="Defines a base stat value"
+              description="Defines a constant numeric value"
               headerBg="bg-blue-500"
               borderColor="border-blue-200 hover:border-blue-400"
             />
             <ToolboxItem
               type="output"
               label="Result Node"
-              description="Displays the final result"
+              description="Displays the calculated result"
               headerBg="bg-emerald-500"
               borderColor="border-emerald-200 hover:border-emerald-400"
             />
             <ToolboxItem
               type="operator"
               label="Operator Node"
-              description="Applies +, −, ×, or ÷ to inputs"
+              description="Applies math or comparison operations"
               headerBg="bg-amber-500"
               borderColor="border-amber-200 hover:border-amber-400"
             />

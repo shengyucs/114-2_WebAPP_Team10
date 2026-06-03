@@ -34,7 +34,11 @@ const ToolboxItem: React.FC<ToolboxItemProps> = ({
           className={`w-8 h-8 rounded-md ${headerBg} flex items-center justify-center shrink-0 shadow-sm`}
         >
           <span className="text-white text-[9px] font-bold tracking-widest">
-            {type.slice(0, 2).toUpperCase()}
+            {type === 'input'
+              ? 'CO'
+              : type === 'output'
+                ? 'RE'
+                : type.slice(0, 2).toUpperCase()}
           </span>
         </div>
 

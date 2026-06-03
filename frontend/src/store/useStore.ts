@@ -80,8 +80,8 @@ export const useStore = create<StoreState>((set, get) => ({
         ...(type === 'operator' ? { operator: '+' as const } : {}),
       },
       style: {
-        width: type === 'operator' ? 56 : 180,
-        height: type === 'operator' ? 56 : 90,
+        width: type === 'operator' ? 56 : 140,
+        height: type === 'operator' ? 56 : 75,
       },
     };
     set({ nodes: [...get().nodes, newNode] });

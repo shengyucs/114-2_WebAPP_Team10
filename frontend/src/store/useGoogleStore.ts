@@ -147,8 +147,8 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
             operator: n.operator,
           },
           style: {
-            width: n.type === 'operator' ? 56 : 180,
-            height: n.type === 'operator' ? 56 : 90,
+            width: n.type === 'operator' ? 56 : 140,
+            height: n.type === 'operator' ? 56 : 75,
           },
         };
       });
