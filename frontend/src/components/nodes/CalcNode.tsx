@@ -26,7 +26,28 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
   type,
 }) => {
   const deleteNode = useStore((s) => s.deleteNode);
+  const patchNode = useStore((s) => s.patchNode);
   const calcResult = useStore((s) => s.results[id]);
+
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState(() => String(data.value));
+
+  const handleSave = () => {
+    const val = parseFloat(editValue);
+    const committed = isNaN(val) ? 0 : val;
+    patchNode(id, { data: { value: committed } });
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditValue(String(data.value));
+      setIsEditing(false);
+    }
+  };
 
   const nodeType = (type as NodeData['type']) ?? 'input';
   const style =
@@ -102,18 +123,43 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
             {data.label}
           </p>
         ) : null}
-        <p
-          className={`font-bold leading-none ${
-            isOutput ? 'text-lg text-emerald-600' : 'text-base text-slate-800'
-          }`}
-        >
-          {isOutput
-            ? Number.isInteger(displayValue)
-              ? displayValue
-              : displayValue.toFixed(4).replace(/\.?0+$/, '')
-            : displayValue}
-          {data.isPercentage ? '%' : ''}
-        </p>
+
+        {!isOutput && isEditing ? (
+          <input
+            type="number"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            className="nodrag w-24 text-center font-bold text-base text-slate-800 border border-blue-300 rounded focus:outline-none focus:border-blue-500 py-0.5 bg-blue-50/50"
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <p
+            onDoubleClick={() => {
+              if (!isOutput) {
+                setEditValue(String(data.value));
+                setIsEditing(true);
+              }
+            }}
+            className={`font-bold leading-none select-none ${
+              isOutput
+                ? 'text-lg text-emerald-600'
+                : 'text-base text-slate-800 hover:text-blue-600 cursor-pointer'
+            }`}
+            title={isOutput ? undefined : 'Double click to edit'}
+          >
+            {isOutput
+              ? Number.isInteger(displayValue)
+                ? displayValue
+                : displayValue.toFixed(4).replace(/\.?0+$/, '')
+              : displayValue}
+            {data.isPercentage ? '%' : ''}
+          </p>
+        )}
+
         {isOutput && (
           <p className="text-[9px] text-emerald-400 leading-none">calculated</p>
         )}
