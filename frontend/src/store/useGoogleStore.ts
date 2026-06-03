@@ -17,6 +17,7 @@ interface GoogleState {
   saveCurrentGraph: (name: string) => Promise<void>;
   loadCloudGraph: (id: string) => Promise<void>;
   deleteCloudGraph: (id: string) => Promise<void>;
+  shareCurrentGraphPublicly: (filename: string) => Promise<string>;
 }
 
 const service = new GoogleDriveService();
@@ -142,10 +143,7 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
           data: {
             label: n.label || '',
             value: n.value,
-            multiplierZone: n.multiplierZone,
             isPercentage: n.isPercentage,
-            startTime: n.startTime,
-            endTime: n.endTime,
             operator: n.operator,
           },
           style: { width: 180, height: 90 },
@@ -195,5 +193,24 @@ export const useGoogleStore = create<GoogleState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  shareCurrentGraphPublicly: async (filename: string) => {
+    // Save the graph first so the file exists on Drive
+    await get().saveCurrentGraph(filename);
+
+    const fullFilename = filename.endsWith('.calc')
+      ? filename
+      : `${filename}.calc`;
+    const file = get().cloudFiles.find((f) => f.name === fullFilename);
+    if (!file) {
+      throw new Error('Could not find the saved file to share.');
+    }
+
+    // Grant public read access to the file
+    await service.shareFilePublicly(file.id);
+
+    // Return a hash-based URL that Canvas will intercept on load
+    return `${window.location.origin}${window.location.pathname}#/drive/${file.id}`;
   },
 }));

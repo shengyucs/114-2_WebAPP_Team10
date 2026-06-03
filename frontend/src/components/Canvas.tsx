@@ -11,6 +11,7 @@ import LZString from 'lz-string';
 import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
 import { useGoogleStore } from '../store/useGoogleStore';
+import { GoogleDriveService } from '../services/googleDrive';
 import CalcNode from './nodes/CalcNode';
 import OperatorNode from './nodes/OperatorNode';
 import SaveDialog from './features/SaveDialog';
@@ -42,62 +43,87 @@ const Canvas: React.FC = () => {
   const [isLoadOpen, setIsLoadOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
-  // On mount: if the URL hash matches #/s/{data}, decompress and load the graph
+  /** Maps a GraphState to ReactFlow nodes/edges and populates the canvas store. */
+  const applyGraphState = useCallback(
+    (state: GraphState) => {
+      const flowNodes: Node<FlowNodeData>[] = state.nodes.map(
+        (nodeData, index) => {
+          const col = index % 4;
+          const row = Math.floor(index / 4);
+          const { id, type, label, value, isPercentage, operator } = nodeData;
+          return {
+            id,
+            type,
+            position: { x: 80 + col * 220, y: 80 + row * 140 },
+            data: {
+              label: label ?? '',
+              value,
+              isPercentage,
+              ...(operator !== undefined ? { operator } : {}),
+            },
+            style: { width: 180, height: 90 },
+          };
+        },
+      );
+
+      const flowEdges = state.edges.map((edgeData) => ({
+        id: `e-${edgeData.source}-${edgeData.target}-${edgeData.targetHandle ?? ''}`,
+        source: edgeData.source,
+        target: edgeData.target,
+        sourceHandle: edgeData.sourceHandle,
+        targetHandle: edgeData.targetHandle,
+      }));
+
+      setNodes(flowNodes);
+      setEdges(flowEdges);
+    },
+    [setNodes, setEdges],
+  );
+
+  // On mount: handle URL hash routes for shared graphs
   useEffect(() => {
     const hash = window.location.hash;
-    const PREFIX = '#/s/';
-    if (!hash.startsWith(PREFIX)) return;
+    const LZ_PREFIX = '#/s/';
+    const DRIVE_PREFIX = '#/drive/';
 
-    const encoded = hash.slice(PREFIX.length);
-    const json = LZString.decompressFromEncodedURIComponent(encoded);
-    if (!json) return;
+    const clearHash = () =>
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search,
+      );
 
-    let state: GraphState;
-    try {
-      state = JSON.parse(json) as GraphState;
-    } catch {
-      return;
+    if (hash.startsWith(LZ_PREFIX)) {
+      // LZ-string compressed share link
+      const encoded = hash.slice(LZ_PREFIX.length);
+      const json = LZString.decompressFromEncodedURIComponent(encoded);
+      if (!json) return;
+
+      let state: GraphState;
+      try {
+        state = JSON.parse(json) as GraphState;
+      } catch {
+        return;
+      }
+
+      applyGraphState(state);
+      clearHash();
+    } else if (hash.startsWith(DRIVE_PREFIX)) {
+      // Public Google Drive share link — fetch anonymously (no auth token)
+      const fileId = hash.slice(DRIVE_PREFIX.length);
+      if (!fileId) return;
+
+      const driveService = new GoogleDriveService();
+      driveService
+        .downloadPublicFile(fileId)
+        .then((state) => {
+          applyGraphState(state);
+          clearHash();
+        })
+        .catch((err: unknown) => {
+          console.error('Failed to load public Drive graph:', err);
+        });
     }
-
-    // Map shared NodeData to ReactFlow Node with layout positions and dimensions
-    const flowNodes: Node<FlowNodeData>[] = state.nodes.map(
-      (nodeData, index) => {
-        const col = index % 4;
-        const row = Math.floor(index / 4);
-        const { id, type, label, value, isPercentage, operator } = nodeData;
-        return {
-          id,
-          type,
-          position: { x: 80 + col * 220, y: 80 + row * 140 },
-          data: {
-            label: label ?? '',
-            value,
-            isPercentage,
-            ...(operator !== undefined ? { operator } : {}),
-          },
-          style: { width: 180, height: 90 },
-        };
-      },
-    );
-
-    // Map shared EdgeData to ReactFlow Edge
-    const flowEdges = state.edges.map((edgeData) => ({
-      id: `e-${edgeData.source}-${edgeData.target}-${edgeData.targetHandle ?? ''}`,
-      source: edgeData.source,
-      target: edgeData.target,
-      sourceHandle: edgeData.sourceHandle,
-      targetHandle: edgeData.targetHandle,
-    }));
-
-    setNodes(flowNodes);
-    setEdges(flowEdges);
-
-    // Clear the hash so refreshing does not re-load the shared state
-    window.history.replaceState(
-      null,
-      '',
-      window.location.pathname + window.location.search,
-    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

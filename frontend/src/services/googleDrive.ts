@@ -161,6 +161,41 @@ export class GoogleDriveService {
     return response.json();
   }
 
+  /** Grants public read access to a Drive file so anyone with the link can view it. */
+  async shareFilePublicly(fileId: string): Promise<void> {
+    const permUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
+    const response = await this.fetchWithRetry(permUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+    });
+
+    if (!response.ok) {
+      await this.handleErrorResponse(
+        response,
+        'Failed to share file publicly on Google Drive',
+      );
+    }
+  }
+
+  /**
+   * Downloads a publicly shared Drive file without an Authorization header,
+   * allowing visitors who have no Google token to load the graph.
+   */
+  async downloadPublicFile(fileId: string): Promise<GraphState> {
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      await this.handleErrorResponse(
+        response,
+        'Failed to download public Drive file',
+      );
+    }
+
+    return response.json() as Promise<GraphState>;
+  }
+
   async deleteGraph(fileId: string): Promise<void> {
     const deleteUrl = `https://www.googleapis.com/drive/v3/files/${fileId}`;
     const response = await this.fetchWithRetry(deleteUrl, {

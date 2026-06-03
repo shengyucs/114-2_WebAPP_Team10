@@ -68,7 +68,6 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
         id: 'n1',
         type: 'input',
         value: 42,
-        multiplierZone: 'crit',
         isPercentage: false,
       },
     ],
@@ -144,7 +143,6 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
           data: {
             label: '',
             value: 42,
-            multiplierZone: 'crit',
             isPercentage: false,
           },
         },
@@ -169,7 +167,6 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
           type: 'input',
           label: '',
           value: 42,
-          multiplierZone: 'crit',
           isPercentage: false,
         },
       ],
@@ -192,6 +189,5 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
     expect(canvasNodes[0].id).toBe('n1');
     expect(canvasNodes[0].type).toBe('input');
     expect(canvasNodes[0].data.value).toBe(42);
-    expect(canvasNodes[0].data.multiplierZone).toBe('crit');
   });
 });
