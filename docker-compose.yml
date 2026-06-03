@@ -1,33 +1,10 @@
 services:
-  backend:
+  app:
     build:
       context: .
-      dockerfile: backend/Dockerfile
-    container_name: status-calculator-backend
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
-      - "9229:9229"
-    volumes:
-      - ./backend:/app/backend
-      - /app/backend/node_modules
-      - ./shared:/app/shared
     environment:
+      - NODE_ENV=production
       - PORT=5000
-      - NODE_ENV=development
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    container_name: status-calculator-frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app/frontend
-      - /app/frontend/node_modules
-      - ./shared:/app/shared
-    environment:
-      - VITE_API_URL=http://localhost:5000
-    depends_on:
-      - backend
-

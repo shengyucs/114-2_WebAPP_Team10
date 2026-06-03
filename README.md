@@ -26,7 +26,7 @@
 
 - **Node.js** (建議 v20 或以上)
 - **Git**
-- _(選用)_ **Docker Desktop** (僅當您想以全容器化模式啟動服務時需要，本地開發模式已不需安裝 Docker)
+- _(選用)_ **Docker** (僅當需要在本地測試生產環境部署或展示時需要，日常開發已不需安裝)
 
 ### 2. 初始化專案
 
@@ -49,14 +49,6 @@ npm run dev
 - 前端網址：`http://localhost:5173/`
 - 後端網址：`http://localhost:5000/`
 
-#### 全容器 Docker 模式 (環境一致性測試)
-
-執行以下指令，會在 Docker 容器中啟動前後端服務，並自動建立內部通訊網路：
-
-```bash
-npm run docker:dev
-```
-
 ---
 
 ## 📂 資料夾結構 (Project Structure)
@@ -77,7 +69,7 @@ npm run docker:dev
 ├── shared/                 # 前後端共用型別定義 (TypeScript Interfaces - 唯一事實來源)
 ├── scripts/                # 專案自動化維護腳本 (init, doctor 檢查)
 ├── reference/              # 開發規格書與實作計畫存檔
-└── docker-compose.yml      # Docker 容器堆疊配置 (Frontend, Backend)
+└── docker-compose.yml      # Docker 生產環境單一容器配置 (託管前後端)
 ```
 
 ---
@@ -92,9 +84,8 @@ npm run docker:dev
 | `npm run doctor`       | 檢查本機開發環境與套件完整性                                 |
 | `npm run dev`          | 同時啟動本地前端 (Vite) 與後端 (Express) 開發服務            |
 | `npm test`             | **執行完整測試**（會同時執行前端與後端的 Vitest 測試套件）   |
-| `npm run docker:dev`   | 啟動 Docker 全容器開發環境並於終端機輸出 Logs                |
-| `npm run docker:up`    | 背景啟動 Docker 全容器環境                                   |
-| `npm run docker:down`  | 停止並清理 Docker 容器環境                                   |
+| `npm run docker:up`    | 背景啟動生產環境單一容器 (`http://localhost:5000`)           |
+| `npm run docker:down`  | 停止並清理生產環境容器                                       |
 | `npm run dev:frontend` | 僅啟動前端開發伺服器                                         |
 | `npm run dev:backend`  | 僅啟動後端計算微服務                                         |
 
@@ -112,8 +103,8 @@ npm run docker:dev
 您只需在安裝有 Docker 的伺服器上執行以下指令：
 
 ```bash
-# 使用生產配置構建與啟動容器
-docker compose -f docker-compose.prod.yml up -d --build
+# 構建並啟動生產環境容器
+docker compose up -d --build
 ```
 
 啟動完成後，您即可透過以下網址存取完整的應用程式：
