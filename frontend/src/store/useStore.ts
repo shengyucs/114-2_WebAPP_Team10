@@ -10,6 +10,7 @@ import type {
 import type { CSSProperties } from 'react';
 
 import type { GraphState, NodeData } from '../../../shared/types';
+import { wouldIntroduceCycle } from '../utils/cycleDetection';
 
 // Data stored inside each ReactFlow node (excludes id & type, which live on the node wrapper)
 export type FlowNodeData = Omit<NodeData, 'id' | 'type'>;
@@ -53,7 +54,9 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   onConnect: (connection) => {
-    set({ edges: addEdge(connection, get().edges) });
+    const { nodes, edges } = get();
+    if (wouldIntroduceCycle(nodes, edges, connection)) return;
+    set({ edges: addEdge(connection, edges) });
   },
 
   setNodes: (nodes) => set({ nodes }),
