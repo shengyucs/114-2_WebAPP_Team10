@@ -10,6 +10,7 @@
 - **前端**: React 19, Vite, TypeScript, React Flow, Zustand, Tailwind CSS
 - **後端**: Node.js, Express, Socket.io
 - **資料庫/儲存**: **完全無資料庫 (Database-less)**
+  - 本地暫存：在未儲存至雲端前，任何節點或連線變更皆會自動備份於瀏覽器 `localStorage` (`rpg_calc_autosave`)，在網頁重整或意外關閉重開時能自動還原。
   - 匿名分享：前端利用 `lz-string` 將圖表 JSON 狀態壓縮為 URL-safe Base64 網址雜湊 (`#/s/...`)。
   - 雲端備份：使用者可登入 Google 帳號，直接讀取/存檔至個人 Google Drive，並可一鍵設定對外公開讀取權限分享 (`#/drive/...`)。
 - **環境與工具**: Husky (Git Hooks), Vitest (測試框架), ESLint & Prettier (代碼規範), Docker (容器化配置)

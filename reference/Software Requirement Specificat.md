@@ -15,7 +15,8 @@ The system supports **fully decentralized sharing mechanisms**: anonymous users 
 ### 1.3 Glossary
 
 - **DAG (Directed Acyclic Graph):** The core data structure for all numerical nodes and edges. Circular dependencies are strictly prohibited.
-- **Operator Node:** A special node type that accepts two ordered inputs (A and B) and applies a user-selected arithmetic operation (+, −, ×, ÷) to produce a single output.
+- **Operator Node:** A special node type that accepts two ordered inputs (A and B) and applies a user-selected operation (arithmetic, max/min, or comparisons) to produce a single output.
+- **Conditional Node:** A special node type that accepts three inputs: cond (condition), t (then value), and f (else value). If `cond` is non-zero, it outputs the value of `t`; otherwise, it outputs `f`.
 - **LZ-String Compression:** A high-speed compression utility used to compress JSON states into compact, URL-safe Base64 hashes.
 
 ---
@@ -119,12 +120,15 @@ flowchart LR
         UC8([8. Save/Publish Graph to Cloud])
         UC9([9. Load Graph from Cloud])
         UC10([10. Configure Operator Node])
+        UC11([11. Double-Click Inline Editing])
+        UC12([12. Autosave and Recovery])
     end
 
-    User --- UC1 & UC2 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10
+    User --- UC1 & UC2 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12
     UC8 -. "<<include>>" .-> UC7
     UC9 -. "<<include>>" .-> UC7
     UC10 -. "<<extend>>" .-> UC2
+    UC11 -. "<<extend>>" .-> UC2
     UC1 --- SysEngine
     SysEngine --- UC4
     UC7 & UC8 & UC9 --- GoogleAPI
@@ -236,6 +240,28 @@ The goal of this UC is to establish a "What You See Is What You Get" (WYSIWYG) b
   5. The node's canvas display immediately updates to show the new operation symbol.
 - **Postcondition:** The Operator Node's `operator` property is updated; subsequent graph calculations use the new operation.
 - **Special Constraint:** For non-commutative operations (subtraction, division), the operand order is fixed: handle **A** (top-left) is the first operand, handle **B** (bottom-left) is the second. The computation is always `A [op] B` (e.g., `A ÷ B`, not `B ÷ A`).
+
+#### UC11: Double-Click Inline Editing
+
+- **Precondition:** A Constant (input) node exists on the canvas.
+- **Trigger:** User double-clicks the value text in the Constant node body.
+- **Main Flow:**
+  1. System hides the value display text and renders a numeric input field in its place.
+  2. Input field is automatically focused, and the existing number is fully selected.
+  3. User modifies the value:
+     - Pressing `Enter` or clicking outside the input (blur) commits the value, updating Zustand state and triggering backend calculation.
+     - Pressing `Escape` cancels the edit and restores the original value.
+- **Postcondition:** Node value is updated on the canvas and synchronized to the calculation engine.
+
+#### UC12: Autosave and Recovery
+
+- **Precondition:** None.
+- **Trigger:** Any modification to nodes or edges occurs (adding/deleting nodes, moving positions, changing connections).
+- **Main Flow:**
+  1. Frontend monitors reference state updates of nodes and edges in Zustand store.
+  2. Upon changes, the current canvas configuration (nodes, edges, positions, styles) is serialized and stored in browser `localStorage` under `rpg_calc_autosave`.
+  3. When the web app is loaded without a sharing URL hash, the frontend checks if an autosave payload exists. If yes, it decompresses/parses the payload and hydrates the Zustand store directly.
+- **Postcondition:** Canvas state is restored to its exact last edited state on app start.
 
 ---
 
