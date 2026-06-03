@@ -33,7 +33,9 @@ Every significant task MUST follow this loop:
 2. **Plan**: Write a detailed English plan in the chat or an artifact.
 3. **Approval**: Wait for the USER to say "Approved" or "Proceed".
 4. **Execution**: Implement the changes (or delegate to an executor).
-5. **Review**: Verify the output with tests and report back.
+   - **Delegation Protocol**: If a sub-agent (Executor like Claude Code) is used, the Orchestrator (AG) must NEVER modify source code directly to fix the sub-agent's errors. If the sub-agent's output is suboptimal, has logical/route bugs, or fails compilation/linting/tests, the Orchestrator MUST write down the errors/feedback and command the sub-agent to fix them.
+5. **Review & Gate**: Verify the output with tests, push the branch to the remote repository, and report the validation results back to the USER.
+   - **Merge & Cleanup Gate**: The Orchestrator MUST pause and wait for the USER's explicit confirmation of the results before merging the feature branch into `main` and deleting the local/remote branches.
 
 ## Mentorship
 
