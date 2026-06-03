@@ -1,6 +1,28 @@
 import React, { useState } from 'react';
+import type { Node } from 'reactflow';
 import { useStore } from '../store/useStore';
+import type { FlowNodeData } from '../store/useStore';
 import SectionHeader from './ui/SectionHeader';
+
+// Maps internal node type to its human-readable display name
+const NODE_TYPE_LABELS: Record<string, string> = {
+  input: 'Constant',
+  output: 'Result',
+  operator: 'Operator',
+  conditional: 'Conditional',
+};
+
+/** Returns the display label for a node, falling back to "Unnamed <Type>". */
+function getNodeLabel(node: Node<FlowNodeData>): string {
+  if (node.data.label?.trim()) return node.data.label.trim();
+  return `Unnamed ${NODE_TYPE_LABELS[node.type ?? ''] ?? 'Node'}`;
+}
+
+/** Formats a numeric value for compact display — trims trailing zeros. */
+function formatValue(v: number): string {
+  if (Number.isInteger(v)) return String(v);
+  return v.toFixed(4).replace(/\.?0+$/, '');
+}
 
 // Shows empty string when value is 0 so users don't have to clear "0" first.
 // Commits to store on blur; placeholder="0" shows the implied default.
@@ -48,11 +70,64 @@ const NumInput: React.FC<{
   );
 };
 
+/** Clickable chip that selects and navigates to another node in the graph. */
+const NodeLink: React.FC<{
+  node: Node<FlowNodeData>;
+  value: number;
+  onNavigate: (id: string) => void;
+}> = ({ node, value, onNavigate }) => (
+  <button
+    onClick={() => onNavigate(node.id)}
+    className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-colors group"
+  >
+    <span className="text-xs font-medium text-slate-600 group-hover:text-blue-700 truncate mr-2">
+      {getNodeLabel(node)}
+    </span>
+    <span className="text-xs font-bold text-emerald-600 shrink-0">
+      {formatValue(value)}
+    </span>
+  </button>
+);
+
+/** Single row in a port-detail table: port label + connected node (or disconnected state). */
+const PortRow: React.FC<{
+  portLabel: string;
+  connectedNode: Node<FlowNodeData> | undefined;
+  value: number;
+  onNavigate: (id: string) => void;
+}> = ({ portLabel, connectedNode, value, onNavigate }) => (
+  <div className="flex items-center gap-2 px-3 py-2">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-10 shrink-0">
+      {portLabel}
+    </span>
+    {connectedNode ? (
+      <button
+        onClick={() => onNavigate(connectedNode.id)}
+        className="flex-1 flex items-center justify-between px-2 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition-colors group min-w-0"
+      >
+        <span className="text-xs font-medium text-slate-600 group-hover:text-blue-700 truncate mr-1">
+          {getNodeLabel(connectedNode)}
+        </span>
+        <span className="text-xs font-bold text-emerald-600 shrink-0">
+          {formatValue(value)}
+        </span>
+      </button>
+    ) : (
+      <div className="flex-1 flex items-center justify-between px-2 py-1 rounded-md border border-dashed border-slate-200 bg-white">
+        <span className="text-xs text-slate-300 italic">[Disconnected]</span>
+        <span className="text-xs font-bold text-slate-300">0</span>
+      </div>
+    )}
+  </div>
+);
+
 const InspectorPanel: React.FC = () => {
   const nodes = useStore((s) => s.nodes);
+  const edges = useStore((s) => s.edges);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const results = useStore((s) => s.results);
   const patchNode = useStore((s) => s.patchNode);
+  const setSelectedNodeId = useStore((s) => s.setSelectedNodeId);
 
   const node = nodes.find((n) => n.id === selectedNodeId);
 
@@ -70,12 +145,39 @@ const InspectorPanel: React.FC = () => {
   }
 
   const { data } = node;
-  const width = (node.style?.width as number | undefined) ?? 180;
-  const height = (node.style?.height as number | undefined) ?? 90;
   const isOutput = node.type === 'output';
   const isOperator = node.type === 'operator';
-  const isReadOnly = isOutput || isOperator;
+  const isConditional = node.type === 'conditional';
+  const isReadOnly = isOutput || isOperator || isConditional;
   const calcResult = results[node.id] ?? 0;
+
+  // Partition edges by direction relative to the selected node
+  const incomingEdges = edges.filter((e) => e.target === node.id);
+  const outgoingEdges = edges.filter((e) => e.source === node.id);
+
+  const incomingNodes = incomingEdges
+    .map((e) => nodes.find((n) => n.id === e.source))
+    .filter((n): n is Node<FlowNodeData> => n !== undefined);
+
+  const outgoingNodes = outgoingEdges
+    .map((e) => nodes.find((n) => n.id === e.target))
+    .filter((n): n is Node<FlowNodeData> => n !== undefined);
+
+  /** Finds the source node wired to a specific named input handle. */
+  const getSourceForHandle = (
+    handle: string,
+  ): Node<FlowNodeData> | undefined => {
+    const edge = incomingEdges.find((e) => e.targetHandle === handle);
+    if (!edge) return undefined;
+    return nodes.find((n) => n.id === edge.source);
+  };
+
+  /** Returns the resolved value (computed or raw) of the node on a named input handle. */
+  const getValueForHandle = (handle: string): number => {
+    const src = getSourceForHandle(handle);
+    if (!src) return 0;
+    return results[src.id] ?? src.data.value ?? 0;
+  };
 
   return (
     <div key={node.id} className="flex flex-col gap-5 py-3">
@@ -125,7 +227,7 @@ const InspectorPanel: React.FC = () => {
         <SectionHeader title="Value" />
         <div className="flex flex-col gap-3">
           {isReadOnly ? (
-            /* Calculated result display for output/operator */
+            /* Calculated result display for output / operator / conditional */
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Calculated Result
@@ -163,49 +265,87 @@ const InspectorPanel: React.FC = () => {
         </div>
       </section>
 
-      {/* Position */}
-      <section className="px-4">
-        <SectionHeader title="Position" />
-        <div className="grid grid-cols-2 gap-3">
-          <NumInput
-            label="X"
-            value={node.position.x}
-            onChange={(v) =>
-              patchNode(node.id, { position: { x: v, y: node.position.y } })
-            }
-          />
-          <NumInput
-            label="Y"
-            value={node.position.y}
-            onChange={(v) =>
-              patchNode(node.id, { position: { x: node.position.x, y: v } })
-            }
-          />
-        </div>
-      </section>
+      {/* Input port detail breakdown for Operator nodes (A and B) */}
+      {isOperator && (
+        <section className="px-4">
+          <SectionHeader title="Input Ports" />
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+            <PortRow
+              portLabel="A"
+              connectedNode={getSourceForHandle('a')}
+              value={getValueForHandle('a')}
+              onNavigate={setSelectedNodeId}
+            />
+            <PortRow
+              portLabel="B"
+              connectedNode={getSourceForHandle('b')}
+              value={getValueForHandle('b')}
+              onNavigate={setSelectedNodeId}
+            />
+          </div>
+        </section>
+      )}
 
-      {/* Size */}
-      <section className="px-4">
-        <SectionHeader title="Size" />
-        <div className="grid grid-cols-2 gap-3">
-          <NumInput
-            label="Width"
-            value={width}
-            min={60}
-            onChange={(v) =>
-              patchNode(node.id, { style: { width: Math.max(60, v) } })
-            }
-          />
-          <NumInput
-            label="Height"
-            value={height}
-            min={40}
-            onChange={(v) =>
-              patchNode(node.id, { style: { height: Math.max(40, v) } })
-            }
-          />
-        </div>
-      </section>
+      {/* Input port detail breakdown for Conditional nodes (Cond, Then, Else) */}
+      {isConditional && (
+        <section className="px-4">
+          <SectionHeader title="Input Ports" />
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+            <PortRow
+              portLabel="Cond"
+              connectedNode={getSourceForHandle('cond')}
+              value={getValueForHandle('cond')}
+              onNavigate={setSelectedNodeId}
+            />
+            <PortRow
+              portLabel="Then"
+              connectedNode={getSourceForHandle('t')}
+              value={getValueForHandle('t')}
+              onNavigate={setSelectedNodeId}
+            />
+            <PortRow
+              portLabel="Else"
+              connectedNode={getSourceForHandle('f')}
+              value={getValueForHandle('f')}
+              onNavigate={setSelectedNodeId}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Incoming connections — shown for non-operator/conditional nodes */}
+      {!isOperator && !isConditional && incomingNodes.length > 0 && (
+        <section className="px-4">
+          <SectionHeader title="Incoming Connections" />
+          <div className="flex flex-col gap-1.5">
+            {incomingNodes.map((n) => (
+              <NodeLink
+                key={n.id}
+                node={n}
+                value={results[n.id] ?? n.data.value ?? 0}
+                onNavigate={setSelectedNodeId}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Outgoing connections — shown for all node types */}
+      {outgoingNodes.length > 0 && (
+        <section className="px-4">
+          <SectionHeader title="Outgoing Connections" />
+          <div className="flex flex-col gap-1.5">
+            {outgoingNodes.map((n) => (
+              <NodeLink
+                key={n.id}
+                node={n}
+                value={results[n.id] ?? n.data.value ?? 0}
+                onNavigate={setSelectedNodeId}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
