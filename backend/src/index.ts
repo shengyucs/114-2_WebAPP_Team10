@@ -59,7 +59,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(FRONTEND_BUILD_PATH));
 
   // Fallback: send index.html for any unmatched route so React SPA client routing works
-  app.get('*', (_req, res) => {
+  app.get('*all', (_req, res) => {
     res.sendFile(path.join(FRONTEND_BUILD_PATH, 'index.html'));
   });
 }
