@@ -118,11 +118,9 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
           <Handle type="target" position={Position.Left} style={handleStyle} />
         )}
 
-        {data.label ? (
-          <p className="text-[10px] text-slate-500 truncate w-full text-center leading-tight">
-            {data.label}
-          </p>
-        ) : null}
+        <p className="text-[10px] text-slate-500 truncate w-full text-center leading-tight min-h-[15px]">
+          {data.label?.trim() || '\u00A0'}
+        </p>
 
         {!isOutput && isEditing ? (
           <input
