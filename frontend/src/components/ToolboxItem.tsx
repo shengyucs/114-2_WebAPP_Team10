@@ -23,12 +23,12 @@ const ToolboxItem: React.FC<ToolboxItemProps> = ({
     <button
       onClick={() => addNode(type)}
       className={`
-        w-full text-left px-3 py-2.5 rounded-lg border-2 ${borderColor}
+        w-full text-left px-3 py-2 rounded-lg border-2 ${borderColor}
         bg-white hover:bg-slate-50 transition-all duration-150
-        active:scale-95 group cursor-pointer
+        active:scale-95 group cursor-pointer min-h-[76px] flex items-center
       `}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 w-full">
         {/* Mini node icon */}
         <div
           className={`w-8 h-8 rounded-md ${headerBg} flex items-center justify-center shrink-0 shadow-sm`}
