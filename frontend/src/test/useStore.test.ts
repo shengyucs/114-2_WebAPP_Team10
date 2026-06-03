@@ -135,5 +135,51 @@ describe('useStore (Zustand Store Unit Tests)', () => {
     // Expect node1 X < node2 X < node3 X since n1 is root (level 0), n2 is level 1, n3 is level 2
     expect(node1.position.x).toBeLessThan(node2.position.x);
     expect(node2.position.x).toBeLessThan(node3.position.x);
+
+    // With 1 node in each column, all y positions should default to 80 (offset = 0)
+    expect(node1.position.y).toBe(80);
+    expect(node2.position.y).toBe(80);
+    expect(node3.position.y).toBe(80);
+  });
+
+  it('should center columns vertically relative to the longest column', () => {
+    useStore.getState().addNode('input'); // n1 (Level 0)
+    useStore.getState().addNode('input'); // n2 (Level 0)
+    useStore.getState().addNode('input'); // n3 (Level 0)
+    useStore.getState().addNode('output'); // n4 (Level 1)
+
+    const nodes = useStore.getState().nodes;
+    const n1 = nodes[0].id;
+    const n2 = nodes[1].id;
+    const n3 = nodes[2].id;
+    const n4 = nodes[3].id;
+
+    // Connect all three inputs to the output
+    useStore.setState({
+      edges: [
+        { id: 'e1', source: n1, target: n4 },
+        { id: 'e2', source: n2, target: n4 },
+        { id: 'e3', source: n3, target: n4 },
+      ],
+    });
+
+    useStore.getState().layoutNodes();
+
+    const updatedNodes = useStore.getState().nodes;
+    const node1 = updatedNodes.find((n) => n.id === n1)!;
+    const node2 = updatedNodes.find((n) => n.id === n2)!;
+    const node3 = updatedNodes.find((n) => n.id === n3)!;
+    const node4 = updatedNodes.find((n) => n.id === n4)!;
+
+    // Level 0 has 3 nodes, so N_max = 3.
+    // Their y coordinates should be 80, 220, 360 (assigned in order or sorted, total set of y coords should match)
+    const yCoords = [node1.position.y, node2.position.y, node3.position.y].sort(
+      (a, b) => a - b,
+    );
+    expect(yCoords).toEqual([80, 220, 360]);
+
+    // Level 1 has 1 node (n4), so its offset = (3 - 1) * 70 = 140
+    // Its y coordinate should be 0 * 140 + 80 + 140 = 220 (vertically centered relative to the 3-node column)
+    expect(node4.position.y).toBe(220);
   });
 });

@@ -116,11 +116,16 @@ export const useStore = create<StoreState>((set, get) => ({
 
     // Build parent lookup: for each node, collect the IDs of its source (parent) nodes
     const parents = new Map<string, string[]>();
+    // Build child lookup: for each node, collect the IDs of its target (child) nodes
+    const children = new Map<string, string[]>();
+
     for (const node of nodes) {
       parents.set(node.id, []);
+      children.set(node.id, []);
     }
     for (const edge of edges) {
       parents.get(edge.target)?.push(edge.source);
+      children.get(edge.source)?.push(edge.target);
     }
 
     // Memoized recursive helper: longest path (topological depth) from any root
@@ -144,16 +149,97 @@ export const useStore = create<StoreState>((set, get) => ({
       levelGroups.get(level)!.push(node.id);
     }
 
-    // Assign grid positions: x by column (level), y by row within the column
+    // Crossing minimization using a simple 2-pass Barycenter heuristic
+    const maxLevel = Math.max(...Array.from(levelGroups.keys()), 0);
+    const rowIndexes = new Map<string, number>();
+
+    // Initial assignment of row indexes based on their topological group ordering
+    for (let l = 0; l <= maxLevel; l++) {
+      const group = levelGroups.get(l) ?? [];
+      group.forEach((id, index) => {
+        rowIndexes.set(id, index);
+      });
+    }
+
+    // Pass 1: Forward Pass (Level 1 to maxLevel) - align with parents
+    for (let l = 1; l <= maxLevel; l++) {
+      const group = levelGroups.get(l) ?? [];
+      const barycenters = group.map((nodeId) => {
+        const nodeParents = parents.get(nodeId) ?? [];
+        const assignedParents = nodeParents.filter((pId) =>
+          rowIndexes.has(pId),
+        );
+
+        const score =
+          assignedParents.length > 0
+            ? assignedParents.reduce((s, pId) => s + rowIndexes.get(pId)!, 0) /
+              assignedParents.length
+            : group.indexOf(nodeId);
+
+        return { nodeId, score };
+      });
+
+      barycenters.sort((a, b) => a.score - b.score);
+      const sortedGroup = barycenters.map((b) => b.nodeId);
+      levelGroups.set(l, sortedGroup);
+
+      // Re-assign row indexes for this level
+      sortedGroup.forEach((id, index) => {
+        rowIndexes.set(id, index);
+      });
+    }
+
+    // Pass 2: Backward Pass (maxLevel - 1 down to 0) - align with children
+    for (let l = maxLevel - 1; l >= 0; l--) {
+      const group = levelGroups.get(l) ?? [];
+      const barycenters = group.map((nodeId) => {
+        const nodeChildren = children.get(nodeId) ?? [];
+        const assignedChildren = nodeChildren.filter((cId) =>
+          rowIndexes.has(cId),
+        );
+
+        const score =
+          assignedChildren.length > 0
+            ? assignedChildren.reduce((s, cId) => s + rowIndexes.get(cId)!, 0) /
+              assignedChildren.length
+            : group.indexOf(nodeId);
+
+        return { nodeId, score };
+      });
+
+      barycenters.sort((a, b) => a.score - b.score);
+      const sortedGroup = barycenters.map((b) => b.nodeId);
+      levelGroups.set(l, sortedGroup);
+
+      // Re-assign row indexes for this level
+      sortedGroup.forEach((id, index) => {
+        rowIndexes.set(id, index);
+      });
+    }
+
+    // Find the maximum number of nodes in any column to center columns vertically
+    let maxNodesInCol = 0;
+    for (let l = 0; l <= maxLevel; l++) {
+      const count = levelGroups.get(l)?.length ?? 0;
+      if (count > maxNodesInCol) {
+        maxNodesInCol = count;
+      }
+    }
+
+    // Assign grid positions with vertical centering
     const updatedNodes = nodes.map((node) => {
       const level = getLevel(node.id);
       const group = levelGroups.get(level)!;
       const rowIndex = group.indexOf(node.id);
+
+      // Vertical centering offset
+      const offset = (maxNodesInCol - group.length) * 70;
+
       return {
         ...node,
         position: {
           x: level * 260 + 80,
-          y: rowIndex * 140 + 80,
+          y: rowIndex * 140 + 80 + offset,
         },
       };
     });
