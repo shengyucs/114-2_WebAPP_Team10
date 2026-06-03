@@ -83,8 +83,11 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
       <div
         className={`${style.header} px-3 py-1 flex items-center justify-between shrink-0 rounded-t-[6px]`}
       >
-        <span className="text-white text-[9px] font-bold tracking-[0.2em]">
-          {style.typeLabel}
+        <span
+          className="text-white text-[9px] font-bold tracking-[0.15em] truncate max-w-[100px]"
+          title={data.label?.trim() || style.typeLabel}
+        >
+          {data.label?.trim() ? data.label.trim() : style.typeLabel}
         </span>
         <button
           onClick={(e) => {
@@ -117,10 +120,6 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
         {isOutput && (
           <Handle type="target" position={Position.Left} style={handleStyle} />
         )}
-
-        <p className="text-[10px] text-slate-500 truncate w-full text-center leading-tight min-h-[15px]">
-          {data.label?.trim() || '\u00A0'}
-        </p>
 
         {!isOutput && isEditing ? (
           <input
