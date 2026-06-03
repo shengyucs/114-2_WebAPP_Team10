@@ -22,22 +22,19 @@ function App() {
             </p>
             <ToolboxItem
               type="input"
-              label="Constant Node"
-              description="Defines a constant numeric value"
+              label="Constant"
               headerBg="bg-blue-500"
               borderColor="border-blue-200 hover:border-blue-400"
             />
             <ToolboxItem
               type="output"
-              label="Result Node"
-              description="Displays the calculated result"
+              label="Result"
               headerBg="bg-emerald-500"
               borderColor="border-emerald-200 hover:border-emerald-400"
             />
             <ToolboxItem
               type="operator"
-              label="Operator Node"
-              description="Applies math or comparison operations"
+              label="Operator"
               headerBg="bg-amber-500"
               borderColor="border-amber-200 hover:border-amber-400"
             />

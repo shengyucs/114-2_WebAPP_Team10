@@ -5,7 +5,6 @@ import type { NodeData } from '../../../shared/types';
 interface ToolboxItemProps {
   type: NodeData['type'];
   label: string;
-  description: string;
   headerBg: string;
   borderColor: string;
 }
@@ -13,7 +12,6 @@ interface ToolboxItemProps {
 const ToolboxItem: React.FC<ToolboxItemProps> = ({
   type,
   label,
-  description,
   headerBg,
   borderColor,
 }) => {
@@ -25,7 +23,7 @@ const ToolboxItem: React.FC<ToolboxItemProps> = ({
       className={`
         w-full text-left px-3 py-2 rounded-lg border-2 ${borderColor}
         bg-white hover:bg-slate-50 transition-all duration-150
-        active:scale-95 group cursor-pointer min-h-[76px] flex items-center
+        active:scale-95 group cursor-pointer min-h-[56px] flex items-center
       `}
     >
       <div className="flex items-center gap-3 w-full">
@@ -45,9 +43,6 @@ const ToolboxItem: React.FC<ToolboxItemProps> = ({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-700 leading-tight">
             {label}
-          </p>
-          <p className="text-xs text-slate-400 leading-tight mt-0.5">
-            {description}
           </p>
         </div>
       </div>
