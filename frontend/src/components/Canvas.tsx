@@ -6,7 +6,8 @@ import ReactFlow, {
   BackgroundVariant,
   Panel,
 } from 'reactflow';
-import type { Node } from 'reactflow';
+import type { Node, Connection } from 'reactflow';
+import { wouldIntroduceCycle } from '../utils/cycleDetection';
 import LZString from 'lz-string';
 import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
@@ -151,6 +152,12 @@ const Canvas: React.FC = () => {
     setSelectedNodeId(null);
   }, [setSelectedNodeId]);
 
+  /** Blocks a connection in the UI if it would introduce a cycle in the DAG. */
+  const checkIsValidConnection = useCallback(
+    (connection: Connection) => !wouldIntroduceCycle(nodes, edges, connection),
+    [nodes, edges],
+  );
+
   return (
     <div className="flex-1 relative bg-bg-secondary flex flex-col overflow-hidden">
       <ReactFlow
@@ -162,6 +169,8 @@ const Canvas: React.FC = () => {
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
+        isValidConnection={checkIsValidConnection}
+        deleteKeyCode="Delete"
         connectionRadius={30}
         fitView
         snapToGrid={true}
