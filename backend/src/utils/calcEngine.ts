@@ -115,9 +115,33 @@ export function calculate(graph: GraphState): Record<string, number> {
             results[id] = A / B;
           }
           break;
+        case 'max':
+          results[id] = Math.max(A, B);
+          break;
+        case 'min':
+          results[id] = Math.min(A, B);
+          break;
+        case '>':
+          results[id] = A > B ? 1 : 0;
+          break;
+        case '<':
+          results[id] = A < B ? 1 : 0;
+          break;
+        case '==':
+          results[id] = A === B ? 1 : 0;
+          break;
         default:
           results[id] = 0;
       }
+    } else if (node.type === 'conditional') {
+      // Reads from handles 'cond', 't', 'f'; missing connections default to 0
+      const edgeCond = incoming.find((e) => e.targetHandle === 'cond');
+      const edgeT = incoming.find((e) => e.targetHandle === 't');
+      const edgeF = incoming.find((e) => e.targetHandle === 'f');
+      const cond = edgeCond ? (results[edgeCond.source] ?? 0) : 0;
+      const tVal = edgeT ? (results[edgeT.source] ?? 0) : 0;
+      const fVal = edgeF ? (results[edgeF.source] ?? 0) : 0;
+      results[id] = cond !== 0 ? tVal : fVal;
     }
   }
 

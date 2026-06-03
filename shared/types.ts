@@ -3,11 +3,11 @@
 
 export interface NodeData {
   id: string;
-  type: 'input' | 'output' | 'operator';
+  type: 'input' | 'output' | 'operator' | 'conditional';
   label?: string; // Optional display name
-  value: number; // Numeric stat value (user-set; ignored for output/operator)
+  value: number; // Numeric stat value (user-set; ignored for output/operator/conditional)
   isPercentage: boolean; // True if value is a percentage
-  operator?: '+' | '-' | '*' | '/'; // Only for operator nodes
+  operator?: '+' | '-' | '*' | '/' | 'max' | 'min' | '>' | '<' | '=='; // Only for operator nodes
 }
 
 export interface EdgeData {

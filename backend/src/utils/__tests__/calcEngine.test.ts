@@ -212,4 +212,103 @@ describe('calcEngine — Operator Node', () => {
     // A = 8, B = 0 (disconnected) → 8 * 0 = 0
     expect(calculate(graph)['op']).toBe(0);
   });
+
+  it('calculates max(A, B)', () => {
+    // max(3, 7) = 7, max(12, -2) = 12
+    expect(calculate(makeOpGraph(3, 7, 'max' as unknown as '+'))['op']).toBe(7);
+    expect(calculate(makeOpGraph(12, -2, 'max' as unknown as '+'))['op']).toBe(
+      12,
+    );
+  });
+
+  it('calculates min(A, B)', () => {
+    // min(3, 7) = 3, min(12, -2) = -2
+    expect(calculate(makeOpGraph(3, 7, 'min' as unknown as '+'))['op']).toBe(3);
+    expect(calculate(makeOpGraph(12, -2, 'min' as unknown as '+'))['op']).toBe(
+      -2,
+    );
+  });
+
+  it('calculates A > B comparison', () => {
+    // 5 > 3 = 1, 3 > 5 = 0, 3 > 3 = 0
+    expect(calculate(makeOpGraph(5, 3, '>' as unknown as '+'))['op']).toBe(1);
+    expect(calculate(makeOpGraph(3, 5, '>' as unknown as '+'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '>' as unknown as '+'))['op']).toBe(0);
+  });
+
+  it('calculates A < B comparison', () => {
+    // 3 < 5 = 1, 5 < 3 = 0, 3 < 3 = 0
+    expect(calculate(makeOpGraph(3, 5, '<' as unknown as '+'))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 3, '<' as unknown as '+'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(3, 3, '<' as unknown as '+'))['op']).toBe(0);
+  });
+
+  it('calculates A == B comparison', () => {
+    // 5 == 5 = 1, 5 == 3 = 0
+    expect(calculate(makeOpGraph(5, 5, '==' as unknown as '+'))['op']).toBe(1);
+    expect(calculate(makeOpGraph(5, 3, '==' as unknown as '+'))['op']).toBe(0);
+  });
+});
+
+describe('calcEngine — Conditional Node', () => {
+  const conditionalNode = (id: string) => ({
+    id,
+    type: 'conditional' as unknown as 'input',
+    value: 0,
+    isPercentage: false,
+  });
+
+  it('returns T (then) value when condition is non-zero (true)', () => {
+    const graph: GraphState = {
+      nodes: [
+        inputNode('cond', 1),
+        inputNode('t', 10),
+        inputNode('f', 20),
+        conditionalNode('cond_node'),
+        outputNode('out'),
+      ],
+      edges: [
+        edge('cond', 'cond_node', 'cond'),
+        edge('t', 'cond_node', 't'),
+        edge('f', 'cond_node', 'f'),
+        edge('cond_node', 'out'),
+      ],
+    };
+    const results = calculate(graph);
+    expect(results['cond_node']).toBe(10);
+    expect(results['out']).toBe(10);
+  });
+
+  it('returns F (else) value when condition is zero (false)', () => {
+    const graph: GraphState = {
+      nodes: [
+        inputNode('cond', 0),
+        inputNode('t', 10),
+        inputNode('f', 20),
+        conditionalNode('cond_node'),
+        outputNode('out'),
+      ],
+      edges: [
+        edge('cond', 'cond_node', 'cond'),
+        edge('t', 'cond_node', 't'),
+        edge('f', 'cond_node', 'f'),
+        edge('cond_node', 'out'),
+      ],
+    };
+    const results = calculate(graph);
+    expect(results['cond_node']).toBe(20);
+    expect(results['out']).toBe(20);
+  });
+
+  it('defaults missing handles to zero', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('t', 99), conditionalNode('cond_node')],
+      edges: [
+        edge('t', 'cond_node', 't'), // cond is missing (0), f is missing (0)
+      ],
+    };
+    // cond = 0 (false) -> returns f = 0 (disconnected)
+    const results = calculate(graph);
+    expect(results['cond_node']).toBe(0);
+  });
 });
