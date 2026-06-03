@@ -8,7 +8,7 @@
 ## 🛠 技術棧 (Tech Stack)
 
 - **前端**: React 19, Vite, TypeScript, React Flow, Zustand, Tailwind CSS
-- **後端**: Node.js, Express, Socket.io (去中心化、無狀態的高速計算微服務)
+- **後端**: Node.js, Express, Socket.io
 - **資料庫/儲存**: **完全無資料庫 (Database-less)**
   - 匿名分享：前端利用 `lz-string` 將圖表 JSON 狀態壓縮為 URL-safe Base64 網址雜湊 (`#/s/...`)。
   - 雲端備份：使用者可登入 Google 帳號，直接讀取/存檔至個人 Google Drive，並可一鍵設定對外公開讀取權限分享 (`#/drive/...`)。
