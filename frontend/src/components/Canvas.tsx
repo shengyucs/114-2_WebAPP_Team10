@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   BackgroundVariant,
   Panel,
+  updateEdge,
 } from 'reactflow';
-import type { Node, Connection } from 'reactflow';
+import type { Node, Edge, Connection } from 'reactflow';
 import { wouldIntroduceCycle } from '../utils/cycleDetection';
 import LZString from 'lz-string';
 import 'reactflow/dist/style.css';
@@ -166,6 +167,31 @@ const Canvas: React.FC = () => {
     [nodes, edges],
   );
 
+  // Track whether a reconnect drag landed on a valid target
+  const edgeReconnectSuccessful = useRef(true);
+
+  const onEdgeUpdateStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  const onEdgeUpdate = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      edgeReconnectSuccessful.current = true;
+      setEdges(updateEdge(oldEdge, newConnection, edges));
+    },
+    [edges, setEdges],
+  );
+
+  const onEdgeUpdateEnd = useCallback(
+    (_: MouseEvent, edge: Edge) => {
+      if (!edgeReconnectSuccessful.current) {
+        setEdges(edges.filter((e) => e.id !== edge.id));
+      }
+      edgeReconnectSuccessful.current = true;
+    },
+    [edges, setEdges],
+  );
+
   return (
     <div className="flex-1 relative bg-bg-secondary flex flex-col overflow-hidden">
       <ReactFlow
@@ -175,6 +201,9 @@ const Canvas: React.FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onEdgeUpdate={onEdgeUpdate}
+        onEdgeUpdateStart={onEdgeUpdateStart}
+        onEdgeUpdateEnd={onEdgeUpdateEnd}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         isValidConnection={checkIsValidConnection}
