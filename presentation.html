@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dynamic Status Node Calculator — 簡報</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #2563eb;
+    --blue-lt: #dbeafe;
+    --slate:   #0f172a;
+    --slate2:  #475569;
+    --slate3:  #cbd5e1;
+    --bg:      #f4f7fa;
+    --white:   #ffffff;
+    --green:   #10b981;
+    --amber:   #f59e0b;
+    --violet:  #8b5cf6;
+    --red:     #ef4444;
+    --teal:    #14b8a6;
+    --orange:  #f97316;
+    --yellow:  #eab308;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck {
+    position: relative;
+    width: 960px;
+    height: 540px;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(60px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── accent stripe ── */
+  .slide::before {
+    content: '';
+    display: block;
+    height: 5px;
+    background: linear-gradient(90deg, var(--blue) 0%, #60a5fa 100%);
+    flex-shrink: 0;
+  }
+
+  .slide-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 36px 52px 28px;
+    overflow: hidden;
+  }
+
+  /* ── slide numbers / nav ── */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 99;
+  }
+  .nav button {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 18px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .nav button:hover { background: rgba(255,255,255,.28); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  #counter {
+    color: rgba(255,255,255,.7);
+    font-size: 13px;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ── dots ── */
+  .dots {
+    position: fixed;
+    bottom: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.3);
+    cursor: pointer;
+    transition: background .2s, transform .2s;
+  }
+  .dot.on { background: var(--blue); transform: scale(1.3); }
+
+  /* ─────────────── TYPE HELPERS ─────────────── */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--blue);
+    background: var(--blue-lt);
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 42px; font-weight: 900; color: var(--slate); line-height: 1.15; }
+  h2 { font-size: 26px; font-weight: 800; color: var(--slate); margin-bottom: 20px; }
+  h3 { font-size: 16px; font-weight: 700; color: var(--slate); margin-bottom: 8px; }
+  p  { font-size: 15px; color: var(--slate2); line-height: 1.65; }
+  .sub { font-size: 18px; color: var(--slate2); margin-top: 8px; font-weight: 300; }
+  .bold { font-weight: 700; color: var(--slate); }
+
+  /* ── grid helpers ── */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── card ── */
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--slate3);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .card-blue  { border-left: 4px solid var(--blue);   background: #eff6ff; }
+  .card-green { border-left: 4px solid var(--green);  background: #f0fdf4; }
+  .card-amber { border-left: 4px solid var(--amber);  background: #fffbeb; }
+  .card-violet{ border-left: 4px solid var(--violet); background: #f5f3ff; }
+
+  /* ── table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead tr { background: var(--blue); color: #fff; }
+  thead th { padding: 8px 12px; text-align: left; font-weight: 700; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody td { padding: 7px 12px; color: var(--slate2); border-bottom: 1px solid #e2e8f0; }
+  tbody td:first-child { color: var(--slate); font-weight: 600; }
+
+  /* ── code block ── */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Courier New', monospace;
+  }
+  code .kw  { color: #60a5fa; }
+  code .fn  { color: #a78bfa; }
+  code .str { color: #34d399; }
+  code .cmt { color: #64748b; }
+  code .num { color: #fb923c; }
+
+  /* ── node badge ── */
+  .node-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--slate3);
+    background: var(--white);
+    font-size: 13px;
+  }
+  .dot-icon {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .node-name { font-weight: 700; color: var(--slate); }
+  .node-desc { color: var(--slate2); font-size: 12px; }
+
+  /* ── arch box ── */
+  .arch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 2px solid var(--slate3);
+    border-radius: 10px;
+    padding: 14px 18px;
+    position: relative;
+  }
+  .arch-label {
+    position: absolute;
+    top: -11px; left: 14px;
+    background: var(--white);
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--slate2);
+  }
+  .arch-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .arch-box {
+    flex: 1;
+    text-align: center;
+    padding: 7px 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .arrow { color: var(--slate3); font-size: 18px; }
+
+  /* ── flow step ── */
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; color: var(--slate); }
+  .step-desc  { font-size: 12.5px; color: var(--slate2); margin-top: 2px; }
+
+  /* ── check list ── */
+  .check-list { list-style: none; }
+  .check-list li {
+    padding: 5px 0;
+    font-size: 14px;
+    color: var(--slate2);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .check-list li::before {
+    content: '✓';
+    color: var(--green);
+    font-weight: 800;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .check-list li span { color: var(--slate); font-weight: 600; }
+
+  /* ── pill ── */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  /* ── title slide special ── */
+  .title-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #eff6ff 0%, #f4f7fa 60%, #e0f2fe 100%);
+    z-index: 0;
+  }
+  .title-content { position: relative; z-index: 1; }
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(203,213,225,.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(203,213,225,.4) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════════ SLIDE 1: Title ══════════════════ -->
+  <div class="slide active" id="s0">
+    <div style="height:5px;background:linear-gradient(90deg,#2563eb,#60a5fa);flex-shrink:0;"></div>
+    <div class="grid-lines"></div>
+    <div class="title-bg"></div>
+    <div class="slide-inner title-content" style="justify-content:center;">
+      <div class="tag">Web Application — 114-2 Team 10</div>
+      <h1 style="font-size:46px;">Dynamic Status<br>Node Calculator</h1>
+      <p class="sub">動態數值節點計算器</p>
+      <p style="margin-top:18px;font-size:14px;color:#94a3b8;">
+        可視化拖拽節點，即時計算複雜數值公式 · RPG 加成 · 邏輯閘
+      </p>
+      <div style="margin-top:32px;display:flex;gap:10px;flex-wrap:wrap;">
+        <span class="pill" style="background:#dbeafe;color:#1d4ed8;">React Flow</span>
+        <span class="pill" style="background:#d1fae5;color:#065f46;">Node.js</span>
+        <span class="pill" style="background:#fef3c7;color:#92400e;">Socket.io</span>
+        <span class="pill" style="background:#ede9fe;color:#4c1d95;">TypeScript</span>
+        <span class="pill" style="background:#f0fdf4;color:#14532d;">Zustand</span>
+        <span class="pill" style="background:#fce7f3;color:#9d174d;">Tailwind CSS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 2: 動機與目的 ══════════════════ -->
+  <div class="slide" id="s1">
+    <div class="slide-inner">
+      <div class="tag">動機與目的</div>
+      <h2>為什麼做這個？</h2>
+      <div class="cols2" style="gap:20px;">
+        <div>
+          <h3 style="margin-bottom:10px;">問題背景</h3>
+          <div class="card card-amber" style="margin-bottom:12px;">
+            <p style="font-size:13.5px;">RPG 數值公式極為複雜：<br>
+            <span class="bold">攻擊力 = (基礎 + 裝備) × (1 + 強化%) × 條件 buff</span></p>
+          </div>
+          <p style="font-size:13.5px;margin-bottom:10px;">傳統工具的痛點：</p>
+          <ul style="font-size:13px;color:#475569;padding-left:18px;line-height:2;">
+            <li>Excel 無法呈現計算<strong>資料流向</strong></li>
+            <li>程式碼公式不透明、難調整</li>
+            <li>缺乏可互動的計算建模工具</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;">解決方案目標</h3>
+          <div class="card card-blue" style="margin-bottom:12px;">
+            <p style="font-size:13.5px;font-weight:700;color:#1d4ed8;">像 Unreal Engine Blueprint 一樣</p>
+            <p style="font-size:13px;">拖拽節點 → 連線 → 即時看到結果</p>
+          </div>
+          <ul class="check-list">
+            <li>可視化的計算依賴關係</li>
+            <li>支援條件分支與流程控制</li>
+            <li>全域變數系統（模擬狀態機）</li>
+            <li>無需帳號，一鍵 URL 分享</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 3: 方法與素材 ══════════════════ -->
+  <div class="slide" id="s2">
+    <div class="slide-inner">
+      <div class="tag">方法與素材</div>
+      <h2>技術棧</h2>
+      <div class="cols3" style="gap:14px;">
+        <div>
+          <h3 style="color:#2563eb;margin-bottom:8px;">前端</h3>
+          <table>
+            <thead><tr><th>套件</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>React 18</td><td>UI 框架</td></tr>
+              <tr><td>React Flow</td><td>節點圖引擎</td></tr>
+              <tr><td>Zustand</td><td>全域狀態</td></tr>
+              <tr><td>Tailwind CSS</td><td>樣式系統</td></tr>
+              <tr><td>lz-string</td><td>URL 壓縮分享</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="color:#10b981;margin-bottom:8px;">後端</h3>
+          <table>
+            <thead><tr><th>套件</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>Node.js</td><td>計算微服務</td></tr>
+              <tr><td>Express</td><td>HTTP 伺服器</td></tr>
+              <tr><td>Socket.io</td><td>WebSocket</td></tr>
+              <tr><td>TypeScript</td><td>型別安全</td></tr>
+              <tr><td>Vitest</td><td>TDD 測試</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="color:#8b5cf6;margin-bottom:8px;">儲存 / 部署</h3>
+          <table>
+            <thead><tr><th>機制</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr><td>localStorage</td><td>自動存檔</td></tr>
+              <tr><td>URL Hash</td><td>無帳號分享</td></tr>
+              <tr><td>Google Drive</td><td>雲端備份</td></tr>
+              <tr><td>Docker</td><td>容器化部署</td></tr>
+              <tr><td>Husky</td><td>Git Hooks</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;padding:10px 16px;background:#f8fafc;">
+        <p style="font-size:13px;"><span class="bold">設計原則：</span>完全無資料庫 (Database-less) · 共用型別定義 <code style="background:#e2e8f0;padding:1px 5px;border-radius:3px;">shared/types.ts</code> 作為唯一事實來源</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 4: 系統架構 ══════════════════ -->
+  <div class="slide" id="s3">
+    <div class="slide-inner">
+      <div class="tag">程式架構</div>
+      <h2>系統架構</h2>
+      <div class="cols2" style="gap:20px;flex:1;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="arch">
+            <span class="arch-label">瀏覽器 — 前端</span>
+            <div class="arch-row" style="margin-top:6px;">
+              <div class="arch-box" style="background:#dbeafe;color:#1e40af;">Toolbox<br><small>節點面板</small></div>
+              <div class="arch-box" style="background:#dcfce7;color:#166534;">Canvas<br><small>React Flow</small></div>
+              <div class="arch-box" style="background:#fef9c3;color:#713f12;">Inspector<br><small>屬性編輯</small></div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:#64748b;padding:4px 0;">↕ Zustand Store (useStore.ts)</div>
+            <div class="arch-row">
+              <div class="arch-box" style="background:#f4f7fa;color:#475569;flex:2;">localStorage 自動存檔</div>
+              <div class="arch-box" style="background:#ede9fe;color:#5b21b6;">Google Drive API</div>
+            </div>
+          </div>
+          <div style="text-align:center;color:#94a3b8;font-size:13px;">
+            ⬆ WebSocket (Socket.io) ⬇<br>
+            <small>update_graph / calc_result</small>
+          </div>
+          <div class="arch">
+            <span class="arch-label">後端 — 計算微服務</span>
+            <div style="margin-top:6px;text-align:center;padding:10px;">
+              <div class="arch-box" style="background:#fef3c7;color:#92400e;display:inline-block;padding:8px 24px;">
+                calcEngine.ts<br><small>Kahn 拓撲排序 · DAG 計算</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;">核心設計原則</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="card card-blue" style="padding:10px 14px;">
+              <p style="font-size:13px;"><span class="bold">業務邏輯 → 後端</span><br>前端只做 UI 渲染 + 狀態同步</p>
+            </div>
+            <div class="card card-green" style="padding:10px 14px;">
+              <p style="font-size:13px;"><span class="bold">Zero Rule</span><br>任何未連線輸入 = 0，無隱藏預設值</p>
+            </div>
+            <div class="card card-violet" style="padding:10px 14px;">
+              <p style="font-size:13px;"><span class="bold">DAG 結構強制執行</span><br>前後端雙重循環依賴偵測</p>
+            </div>
+            <div class="card card-amber" style="padding:10px 14px;">
+              <p style="font-size:13px;"><span class="bold">Shared Types</span><br><code style="font-size:11px;background:#fef3c7;padding:1px 4px;">shared/types.ts</code> 前後端共用介面</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 5: 節點類型 ══════════════════ -->
+  <div class="slide" id="s4">
+    <div class="slide-inner">
+      <div class="tag">程式架構</div>
+      <h2>8 種節點類型</h2>
+      <div class="cols2" style="gap:16px;">
+        <div>
+          <p style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;">Node Templates</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#3b82f6;"></div>
+              <div><div class="node-name">Constant</div><div class="node-desc">常數輸入，支援百分比模式 (15% → 1.15)</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#10b981;"></div>
+              <div><div class="node-name">Result</div><div class="node-desc">彙總所有上游輸入值（加總）</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#f59e0b;"></div>
+              <div><div class="node-name">Operator</div><div class="node-desc">數學運算：+ &nbsp;− &nbsp;× &nbsp;÷ &nbsp;max &nbsp;min</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#8b5cf6;"></div>
+              <div><div class="node-name">Conditional</div><div class="node-desc">三元選擇：cond ? T : F</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;">Flow Control &amp; Variables</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#ef4444;"></div>
+              <div><div class="node-name">IfElse</div><div class="node-desc">比較 A vs B（&gt; &lt; = ≥ ≤ ≠），分叉路徑控制</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#eab308;"></div>
+              <div><div class="node-name">Define</div><div class="node-desc">宣告具名全域變數的初始值</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#14b8a6;"></div>
+              <div><div class="node-name">Get</div><div class="node-desc">讀取全域變數（可被 trigger 門控）</div></div>
+            </div>
+            <div class="node-badge">
+              <div class="dot-icon" style="background:#f97316;"></div>
+              <div><div class="node-name">Set</div><div class="node-desc">寫入全域變數（需 trigger 才觸發）</div></div>
+            </div>
+          </div>
+          <div class="card card-amber" style="margin-top:12px;padding:8px 12px;">
+            <p style="font-size:12.5px;">💡 RPG 範例：<span class="bold">exp &gt; 100 → level+1 (Set)</span><br>否則 exp+10 (Set)，模擬升級系統</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 6: 核心算法 ══════════════════ -->
+  <div class="slide" id="s5">
+    <div class="slide-inner">
+      <div class="tag">核心算法</div>
+      <h2>Kahn's Algorithm — 拓撲排序</h2>
+      <div class="cols2" style="gap:20px;align-items:start;">
+        <div>
+          <p style="font-size:14px;margin-bottom:12px;color:#475569;">
+            後端計算引擎使用 <span class="bold">Kahn 演算法</span>對節點圖進行拓撲排序，同時偵測循環依賴。
+          </p>
+          <pre><code><span class="cmt">// 1. 計算每個節點的入度</span>
+<span class="kw">for</span> (<span class="kw">const</span> edge <span class="kw">of</span> edges) {
+  inDegree.<span class="fn">set</span>(edge.target,
+    (inDegree.<span class="fn">get</span>(edge.target) ?? <span class="num">0</span>) + <span class="num">1</span>);
+}
+
+<span class="cmt">// 2. 從入度=0的節點開始排序</span>
+<span class="kw">while</span> (queue.length > <span class="num">0</span>) {
+  <span class="kw">const</span> current = queue.<span class="fn">shift</span>()!;
+  sorted.<span class="fn">push</span>(current);
+  <span class="cmt">// 展開鄰居節點...</span>
+}
+
+<span class="cmt">// 3. 長度不符 → 有環！</span>
+<span class="kw">if</span> (sorted.length !== nodes.length) {
+  <span class="kw">throw new</span> <span class="fn">CircularDependencyError</span>();
+}</code></pre>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;">執行流程</h3>
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <div class="step-title">建立入度表</div>
+              <div class="step-desc">計算每個節點被多少條邊指向</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <div class="step-title">Queue 初始化</div>
+              <div class="step-desc">將所有入度 = 0 的節點加入佇列</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <div class="step-title">逐節點計算</div>
+              <div class="step-desc">按拓撲序計算每個節點的輸出值</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <div class="step-title">循環偵測</div>
+              <div class="step-desc">排序長度 ≠ 節點總數 → 拋出錯誤，前端封鎖連線</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 7: NaN 傳播 ══════════════════ -->
+  <div class="slide" id="s6">
+    <div class="slide-inner">
+      <div class="tag">核心算法</div>
+      <h2>NaN 傳播 — IfElse 流程控制</h2>
+      <div class="cols2" style="gap:20px;align-items:start;">
+        <div>
+          <div class="card card-blue" style="margin-bottom:12px;">
+            <h3 style="font-size:13px;margin-bottom:6px;">IfElse 節點輸出機制</h3>
+            <p style="font-size:13px;">條件 <span class="bold">成立</span>：true 輸出 = <code style="background:#dbeafe;padding:1px 4px;">1</code>，false 輸出 = <code style="background:#fee2e2;padding:1px 4px;">NaN</code></p>
+            <p style="font-size:13px;margin-top:4px;">條件 <span class="bold">不成立</span>：true 輸出 = <code style="background:#fee2e2;padding:1px 4px;">NaN</code>，false 輸出 = <code style="background:#dbeafe;padding:1px 4px;">1</code></p>
+          </div>
+          <pre style="font-size:11.5px;"><code><span class="cmt">// NaN 向下游自然傳播 (JS 行為)</span>
+NaN + <span class="num">10</span>  = NaN   <span class="cmt">// Operator 傳播</span>
+NaN * <span class="num">5</span>   = NaN
+
+<span class="cmt">// Output 節點：NaN 視為 0</span>
+results[id] = incoming.<span class="fn">reduce</span>((sum, edge) => {
+  <span class="kw">const</span> v = <span class="fn">resolveSource</span>(edge, results);
+  <span class="kw">return</span> sum + (<span class="fn">isNaN</span>(v) ? <span class="num">0</span> : v);
+}, <span class="num">0</span>);
+
+<span class="cmt">// Set 節點：trigger 是 NaN → 不寫入</span>
+<span class="kw">if</span> (<span class="fn">isNaN</span>(triggerVal)) { results[id] = <span class="num">0</span>; <span class="kw">continue</span>; }</code></pre>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;">傳播鏈示意</h3>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+            <div style="padding:8px 12px;background:#fee2e2;border-radius:8px;border-left:3px solid #ef4444;">
+              <span class="bold">IfElse</span>：exp(50) &gt; 100 → false<br>
+              <small style="color:#9f1239;">true 路徑輸出 = NaN（封鎖）</small>
+            </div>
+            <div style="text-align:center;color:#94a3b8;">↓ NaN 傳播</div>
+            <div style="padding:8px 12px;background:#fef3c7;border-radius:8px;border-left:3px solid #f59e0b;">
+              <span class="bold">Get(level)</span>：trigger = NaN → 輸出 NaN
+            </div>
+            <div style="text-align:center;color:#94a3b8;">↓ NaN 傳播</div>
+            <div style="padding:8px 12px;background:#fef3c7;border-radius:8px;border-left:3px solid #f59e0b;">
+              <span class="bold">Operator(+)</span>：NaN + 1 = NaN
+            </div>
+            <div style="text-align:center;color:#94a3b8;">↓ NaN 傳播</div>
+            <div style="padding:8px 12px;background:#fee2e2;border-radius:8px;border-left:3px solid #ef4444;">
+              <span class="bold">Set(level)</span>：trigger = NaN → <span style="color:#ef4444;">不寫入</span>，level 維持不變
+            </div>
+            <div style="padding:8px 12px;background:#d1fae5;border-radius:8px;border-left:3px solid #10b981;margin-top:4px;">
+              <span class="bold">false 路徑</span>：exp+10 正常執行 ✓
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 8: 資料流程 ══════════════════ -->
+  <div class="slide" id="s7">
+    <div class="slide-inner">
+      <div class="tag">程式架構</div>
+      <h2>資料流程 — 即時計算循環</h2>
+      <div class="cols2" style="gap:20px;align-items:start;">
+        <div>
+          <div class="flow-step">
+            <div class="step-num" style="background:#2563eb;">1</div>
+            <div class="step-body">
+              <div class="step-title">使用者操作（拖拽 / 連線 / 輸入）</div>
+              <div class="step-desc">useStore 更新 nodes / edges</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num" style="background:#7c3aed;">2</div>
+            <div class="step-body">
+              <div class="step-title">Debounce 100ms → WebSocket 送出</div>
+              <div class="step-desc"><code style="font-size:11px;background:#f4f7fa;padding:1px 4px;">socket.emit('update_graph', graph)</code></div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num" style="background:#059669;">3</div>
+            <div class="step-body">
+              <div class="step-title">後端 calcEngine 計算</div>
+              <div class="step-desc">Kahn 排序 → 逐節點計算 → 回傳結果</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num" style="background:#d97706;">4</div>
+            <div class="step-body">
+              <div class="step-title">前端接收 calc_result</div>
+              <div class="step-desc">setResults() 更新節點顯示值 / setPendingVariableUpdates()</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num" style="background:#dc2626;">5</div>
+            <div class="step-body">
+              <div class="step-title">使用者按 [Run]（手動步進）</div>
+              <div class="step-desc">applyVariableUpdates() → 再次觸發計算</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;">儲存與分享機制</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="card" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;color:#1e40af;">📦 localStorage 自動存檔</p>
+              <p style="font-size:12.5px;margin-top:3px;">每次節點/邊更新即寫入 <code style="font-size:11px;background:#f1f5f9;padding:1px 4px;">rpg_calc_autosave</code>，頁面重整可完整還原</p>
+            </div>
+            <div class="card" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;color:#4f46e5;">🔗 URL Hash 分享</p>
+              <p style="font-size:12.5px;margin-top:3px;">LZ-String 壓縮圖表 JSON → <code style="font-size:11px;background:#f1f5f9;padding:1px 4px;">#/s/...</code>，無需後端或帳號</p>
+            </div>
+            <div class="card" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;color:#166534;">☁️ Google Drive 雲端</p>
+              <p style="font-size:12.5px;margin-top:3px;">登入後可存讀個人 Drive，一鍵設定公開讀取 → <code style="font-size:11px;background:#f1f5f9;padding:1px 4px;">#/drive/...</code></p>
+            </div>
+            <div class="card card-amber" style="padding:8px 12px;margin-top:4px;">
+              <p style="font-size:12.5px;">⚠️ <span class="bold">Set 節點手動步進設計</span>：避免自動計算無限累積變數狀態，需手動按 Run 推進一步</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 9: 測試策略 ══════════════════ -->
+  <div class="slide" id="s8">
+    <div class="slide-inner">
+      <div class="tag">測試策略</div>
+      <h2>TDD — 後端 100% 路徑覆蓋</h2>
+      <div class="cols2" style="gap:20px;align-items:start;">
+        <div>
+          <table>
+            <thead><tr><th>測試套件</th><th>涵蓋範圍</th></tr></thead>
+            <tbody>
+              <tr><td>Topological Sort</td><td>DAG 排序、循環偵測</td></tr>
+              <tr><td>Sum Aggregation</td><td>Zero Rule、多輸入加總</td></tr>
+              <tr><td>isPercentage</td><td>百分比轉換 (15% → 1.15)</td></tr>
+              <tr><td>Operator Node</td><td>六種運算、除以零保護</td></tr>
+              <tr><td>Conditional Node</td><td>三元選擇邏輯</td></tr>
+              <tr><td>IfElse Node</td><td>六種比較、NaN 傳播</td></tr>
+              <tr><td>Define Node</td><td>變數初始化、回退值</td></tr>
+              <tr><td>Get Node</td><td>trigger 門控、NaN 封鎖</td></tr>
+              <tr><td>Set Node</td><td>trigger 驗證、NaN 保護</td></tr>
+              <tr><td>End-to-End</td><td>RPG 升級系統完整模擬</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="card card-green" style="margin-bottom:12px;">
+            <p style="font-size:24px;font-weight:900;color:#065f46;">50+</p>
+            <p style="font-size:14px;font-weight:700;color:#166534;">個測試案例</p>
+            <p style="font-size:13px;margin-top:4px;">10 個套件，100% 路徑覆蓋</p>
+          </div>
+          <h3 style="font-size:13px;margin-bottom:8px;">測試政策</h3>
+          <ul class="check-list">
+            <li><span>後端算法</span>：TDD 強制，先寫測試</li>
+            <li><span>UI 元件</span>：不寫自動化測試，人工驗證</li>
+            <li><span>Strict TypeScript</span>：零 any 使用</li>
+            <li><span>Husky hooks</span>：commit 前 ESLint + Prettier</li>
+          </ul>
+          <pre style="margin-top:12px;font-size:11.5px;"><code><span class="cmt">// Zero Rule 測試範例</span>
+<span class="fn">it</span>(<span class="str">'returns 0 for isolated output (Zero Rule)'</span>, () => {
+  <span class="kw">const</span> graph = { nodes: [<span class="fn">outputNode</span>(<span class="str">'out'</span>)], edges: [] };
+  expect(<span class="fn">calculate</span>(graph).results[<span class="str">'out'</span>]).<span class="fn">toBe</span>(<span class="num">0</span>);
+});</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 10: 結果與討論 ══════════════════ -->
+  <div class="slide" id="s9">
+    <div class="slide-inner">
+      <div class="tag">結果與討論</div>
+      <h2>成果展示與討論</h2>
+      <div class="cols2" style="gap:20px;align-items:start;">
+        <div>
+          <h3 style="margin-bottom:10px;color:#166534;">已實現功能</h3>
+          <ul class="check-list">
+            <li>拖拽建立節點，連線即時計算</li>
+            <li>8 種節點類型，涵蓋運算到流程控制</li>
+            <li>DAG 結構強制執行，自動阻止循環</li>
+            <li>IfElse + Define/Get/Set 模擬 RPG 狀態機</li>
+            <li>localStorage 自動存檔，重整不丟失</li>
+            <li>URL 一鍵分享（LZ-String，無需帳號）</li>
+            <li>Google Drive 雲端儲存與公開分享</li>
+            <li>Auto Layout（Barycenter 最小化邊交叉）</li>
+            <li>邊的拖拽重連與自動刪除</li>
+            <li>Docker 容器化，單一埠口部署</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px;color:#92400e;">限制與未來展望</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="card card-amber" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;">⏸ 手動步進設計</p>
+              <p style="font-size:12.5px;margin-top:3px;">Set 節點需手動按 Run，避免狀態無限累積（設計決策）</p>
+            </div>
+            <div class="card" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;color:#475569;">🔢 純數值計算</p>
+              <p style="font-size:12.5px;margin-top:3px;">目前不支援字串 / 陣列型態</p>
+            </div>
+            <div class="card card-blue" style="padding:10px 14px;">
+              <p style="font-size:13px;font-weight:700;">🚀 延伸可能性</p>
+              <ul style="font-size:12.5px;margin-top:4px;padding-left:14px;line-height:1.8;">
+                <li>視覺化遊戲規則引擎</li>
+                <li>試算表 DSL 建構器</li>
+                <li>技能樹 / 天賦系統設計工具</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 11: 參考資料 ══════════════════ -->
+  <div class="slide" id="s10">
+    <div class="slide-inner">
+      <div class="tag">參考資料</div>
+      <h2>References</h2>
+      <div class="cols2" style="gap:16px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#1d4ed8;">React Flow</p>
+            <p style="font-size:12px;color:#64748b;">Node-based UI library for React<br>reactflow.dev</p>
+          </div>
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#065f46;">Socket.IO</p>
+            <p style="font-size:12px;color:#64748b;">Bidirectional real-time communication<br>socket.io</p>
+          </div>
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#92400e;">lz-string</p>
+            <p style="font-size:12px;color:#64748b;">LZ-based compression for JavaScript<br>github.com/pieroxy/lz-string</p>
+          </div>
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#4c1d95;">Zustand</p>
+            <p style="font-size:12px;color:#64748b;">Bear-bones state management<br>github.com/pmndrs/zustand</p>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#0f172a;">Kahn's Algorithm (1962)</p>
+            <p style="font-size:12px;color:#64748b;">Kahn, A.B. — Topological sorting of large networks<br><em>Communications of the ACM, 5(11)</em></p>
+          </div>
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#0f172a;">Barycenter Heuristic (1981)</p>
+            <p style="font-size:12px;color:#64748b;">Sugiyama, K. et al. — Methods for visual understanding of hierarchical system structures<br><em>IEEE Trans. Systems, Man, Cybernetics</em></p>
+          </div>
+          <div class="card" style="padding:10px 14px;">
+            <p style="font-size:13px;font-weight:700;color:#166534;">Google Drive API v3</p>
+            <p style="font-size:12px;color:#64748b;">File storage and sharing API<br>developers.google.com/drive/api/v3</p>
+          </div>
+          <div class="card card-blue" style="padding:10px 14px;margin-top:4px;">
+            <p style="font-size:13px;font-weight:700;">Vitest</p>
+            <p style="font-size:12px;">Vite-native unit testing framework<br>vitest.dev</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<div class="dots" id="dots"></div>
+<div class="nav">
+  <button id="prev" onclick="move(-1)">← 上一頁</button>
+  <span id="counter"></span>
+  <button id="next" onclick="move(1)">下一頁 →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  let cur = 0;
+
+  // build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function update() {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'exit');
+      if (i === cur) s.classList.add('active');
+    });
+    document.querySelectorAll('.dot').forEach((d, i) =>
+      d.classList.toggle('on', i === cur));
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === slides.length - 1;
+  }
+
+  function goTo(n) {
+    if (n === cur) return;
+    slides[cur].classList.add('exit');
+    setTimeout(() => slides[cur < n ? cur : cur].classList.remove('exit'), 350);
+    cur = n;
+    update();
+  }
+
+  function move(d) {
+    const n = cur + d;
+    if (n < 0 || n >= slides.length) return;
+    goTo(n);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') move(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  move(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>
