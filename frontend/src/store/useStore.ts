@@ -48,7 +48,34 @@ const saveAutosave = (nodes: Node<FlowNodeData>[], edges: Edge[]): void => {
   }
 };
 
-const savedState = loadAutosave();
+const rawSave = loadAutosave();
+// Migrate old Set nodes that were saved with height 75 before the dual-handle redesign
+const savedState = {
+  ...rawSave,
+  nodes: rawSave.nodes.map((n) =>
+    n.type === 'set' && (n.style as { height?: number })?.height === 75
+      ? { ...n, style: { ...n.style, height: 90 } }
+      : n,
+  ),
+};
+
+/** Seeds variables from Define nodes' data.value for any key not already present. */
+const seedDefineVariables = (
+  nodes: Node<FlowNodeData>[],
+  base: Record<string, number> = {},
+): Record<string, number> => {
+  const result = { ...base };
+  for (const node of nodes) {
+    if (
+      node.type === 'define' &&
+      node.data.variableKey &&
+      !(node.data.variableKey in result)
+    ) {
+      result[node.data.variableKey] = node.data.value ?? 0;
+    }
+  }
+  return result;
+};
 
 interface NodePatch {
   data?: Partial<FlowNodeData>;
@@ -61,6 +88,8 @@ interface StoreState {
   edges: Edge[];
   selectedNodeId: string | null;
   results: Record<string, number>;
+  variables: Record<string, number>;
+  pendingVariableUpdates: Record<string, number>;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
@@ -68,6 +97,9 @@ interface StoreState {
   setEdges: (edges: Edge[]) => void;
   setSelectedNodeId: (id: string | null) => void;
   setResults: (results: Record<string, number>) => void;
+  applyVariableUpdates: (updates: Record<string, number>) => void;
+  setPendingVariableUpdates: (updates: Record<string, number>) => void;
+  clearPendingVariableUpdates: () => void;
   addNode: (type: NodeData['type']) => void;
   deleteNode: (id: string) => void;
   patchNode: (id: string, patch: NodePatch) => void;
@@ -80,6 +112,8 @@ export const useStore = create<StoreState>((set, get) => ({
   edges: savedState.edges,
   selectedNodeId: null,
   results: {},
+  variables: seedDefineVariables(savedState.nodes),
+  pendingVariableUpdates: {},
 
   onNodesChange: (changes) => {
     set({ nodes: applyNodeChanges(changes, get().nodes) });
@@ -100,11 +134,29 @@ export const useStore = create<StoreState>((set, get) => ({
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setResults: (results) => set({ results }),
 
+  applyVariableUpdates: (updates) => {
+    // Merge variable updates without triggering a WebSocket re-emit
+    // (called from Run button or inspector Define-key edits, not from auto-calc)
+    set({ variables: { ...get().variables, ...updates } });
+  },
+
+  setPendingVariableUpdates: (updates) => {
+    set({ pendingVariableUpdates: updates });
+  },
+
+  clearPendingVariableUpdates: () => {
+    set({ pendingVariableUpdates: {} });
+  },
+
   addNode: (type) => {
     const id = crypto.randomUUID();
     const count = get().nodes.length;
     const col = count % 4;
     const row = Math.floor(count / 4);
+
+    const isSmall = type === 'operator';
+    const isMedium = type === 'conditional' || type === 'ifelse';
+
     const newNode: Node<FlowNodeData> = {
       id,
       type,
@@ -114,20 +166,43 @@ export const useStore = create<StoreState>((set, get) => ({
         value: 0,
         isPercentage: false,
         ...(type === 'operator' ? { operator: '+' as const } : {}),
+        ...(type === 'ifelse' ? { condition: '>' as const } : {}),
+        ...(type === 'define' || type === 'get' || type === 'set'
+          ? { variableKey: '' }
+          : {}),
       },
       style: {
-        width: type === 'operator' ? 56 : type === 'conditional' ? 70 : 140,
-        height: type === 'operator' ? 56 : type === 'conditional' ? 90 : 75,
+        width: isSmall ? 56 : isMedium ? 80 : 140,
+        // Set node is 90px tall to accommodate two left handles (trigger + value)
+        height: isSmall ? 56 : isMedium || type === 'set' ? 90 : 75,
       },
     };
     set({ nodes: [...get().nodes, newNode] });
   },
 
   deleteNode: (id) => {
+    const { nodes, variables } = get();
+    const deletedNode = nodes.find((n) => n.id === id);
+
+    // If deleting a Define node, remove its key from variables if no other Define uses it
+    let updatedVariables = variables;
+    if (deletedNode?.type === 'define') {
+      const key = deletedNode.data.variableKey ?? '';
+      const otherDefineWithSameKey = nodes.some(
+        (n) => n.id !== id && n.type === 'define' && n.data.variableKey === key,
+      );
+      if (key && !otherDefineWithSameKey) {
+        const next = { ...variables };
+        delete next[key];
+        updatedVariables = next;
+      }
+    }
+
     set({
-      nodes: get().nodes.filter((n) => n.id !== id),
+      nodes: nodes.filter((n) => n.id !== id),
       edges: get().edges.filter((e) => e.source !== id && e.target !== id),
       selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId,
+      variables: updatedVariables,
     });
   },
 
@@ -187,8 +262,9 @@ export const useStore = create<StoreState>((set, get) => ({
     // Helper: Determine node height based on its type
     const getNodeHeight = (type: string): number => {
       if (type === 'operator') return 56;
-      if (type === 'conditional') return 90;
-      return 75; // constant (input) and result (output) height
+      if (type === 'conditional' || type === 'ifelse' || type === 'set')
+        return 90;
+      return 75;
     };
 
     // Helper: Determine handle relative offset ratio based on node type and handleId
@@ -197,7 +273,17 @@ export const useStore = create<StoreState>((set, get) => ({
       handleId: string | undefined,
       isSource: boolean,
     ): number => {
-      if (isSource) return 0.5; // all output/source handles center vertically on the node
+      if (type === 'ifelse') {
+        if (isSource) {
+          if (handleId === 'true') return 0.3;
+          if (handleId === 'false') return 0.7;
+        } else {
+          if (handleId === 'a') return 0.3;
+          if (handleId === 'b') return 0.7;
+        }
+        return 0.5;
+      }
+      if (isSource) return 0.5;
 
       if (type === 'operator') {
         if (handleId === 'a') return 0.3;
@@ -208,6 +294,15 @@ export const useStore = create<StoreState>((set, get) => ({
         if (handleId === 'cond') return 0.2;
         if (handleId === 't') return 0.5;
         if (handleId === 'f') return 0.8;
+        return 0.5;
+      }
+      if (type === 'get') {
+        if (handleId === 'trigger') return 0.5;
+        return 0.5;
+      }
+      if (type === 'set') {
+        if (handleId === 'trigger') return 0.3;
+        if (handleId === 'value') return 0.7;
         return 0.5;
       }
       return 0.5;
@@ -357,7 +452,10 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   getGraphState: () => {
-    const { nodes, edges } = get();
+    const { nodes, edges, variables } = get();
+    // Seed any Define-node keys not yet set in runtime variables so Get nodes
+    // always see the correct initial value instead of falling back to 0
+    const effectiveVariables = seedDefineVariables(nodes, variables);
     return {
       nodes: nodes.map((n) => ({
         id: n.id,
@@ -370,6 +468,7 @@ export const useStore = create<StoreState>((set, get) => ({
         sourceHandle: e.sourceHandle ?? undefined,
         targetHandle: e.targetHandle ?? undefined,
       })),
+      variables: effectiveVariables,
     };
   },
 }));

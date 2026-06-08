@@ -27,19 +27,7 @@ const outputNode = (id: string) => ({
 
 const operatorNode = (
   id: string,
-  op:
-    | '+'
-    | '-'
-    | '*'
-    | '/'
-    | 'max'
-    | 'min'
-    | '>'
-    | '<'
-    | '='
-    | '>='
-    | '<='
-    | '!=',
+  op: '+' | '-' | '*' | '/' | 'max' | 'min',
 ) => ({
   id,
   type: 'operator' as const,
@@ -48,11 +36,47 @@ const operatorNode = (
   operator: op,
 });
 
-const edge = (source: string, target: string, targetHandle?: string) => ({
-  source,
-  target,
-  targetHandle,
+const ifelseNode = (
+  id: string,
+  cond: '>' | '<' | '=' | '>=' | '<=' | '!=',
+) => ({
+  id,
+  type: 'ifelse' as const,
+  value: 0,
+  isPercentage: false,
+  condition: cond,
 });
+
+const defineNode = (id: string, key: string, value = 0) => ({
+  id,
+  type: 'define' as const,
+  value,
+  isPercentage: false,
+  variableKey: key,
+});
+
+const getNode = (id: string, key: string) => ({
+  id,
+  type: 'get' as const,
+  value: 0,
+  isPercentage: false,
+  variableKey: key,
+});
+
+const setNode = (id: string, key: string) => ({
+  id,
+  type: 'set' as const,
+  value: 0,
+  isPercentage: false,
+  variableKey: key,
+});
+
+const edge = (
+  source: string,
+  target: string,
+  targetHandle?: string,
+  sourceHandle?: string,
+) => ({ source, target, targetHandle, sourceHandle });
 
 // ─── Test Suite 1: DAG Topological Sorting ──────────────────────────────────
 
@@ -62,7 +86,7 @@ describe('calcEngine — Topological Sort', () => {
       nodes: [inputNode('a', 10), outputNode('b')],
       edges: [edge('a', 'b')],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['b']).toBe(10);
   });
 
@@ -76,7 +100,7 @@ describe('calcEngine — Topological Sort', () => {
       ],
       edges: [edge('a', 'op', 'a'), edge('b', 'op', 'b'), edge('op', 'out')],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['op']).toBe(10);
     expect(results['out']).toBe(10);
   });
@@ -98,7 +122,7 @@ describe('calcEngine — Simple Sum Aggregation', () => {
       nodes: [inputNode('a', 100), inputNode('b', 50), outputNode('out')],
       edges: [edge('a', 'out'), edge('b', 'out')],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['out']).toBe(150);
   });
 
@@ -107,13 +131,13 @@ describe('calcEngine — Simple Sum Aggregation', () => {
       nodes: [outputNode('out')],
       edges: [],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['out']).toBe(0);
   });
 
   it('returns 0 for an empty graph', () => {
     const graph: GraphState = { nodes: [], edges: [] };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(Object.keys(results)).toHaveLength(0);
   });
 
@@ -122,7 +146,7 @@ describe('calcEngine — Simple Sum Aggregation', () => {
       nodes: [inputNode('a', 0), outputNode('out')],
       edges: [edge('a', 'out')],
     };
-    expect(calculate(graph)['out']).toBe(0);
+    expect(calculate(graph).results['out']).toBe(0);
   });
 });
 
@@ -134,7 +158,7 @@ describe('calcEngine — isPercentage', () => {
       nodes: [pctInputNode('a', 15), outputNode('out')],
       edges: [edge('a', 'out')],
     };
-    expect(calculate(graph)['a']).toBe(1.15);
+    expect(calculate(graph).results['a']).toBe(1.15);
   });
 
   it('applies percentage bonus: base × (1 + pct/100)', () => {
@@ -151,9 +175,8 @@ describe('calcEngine — isPercentage', () => {
         edge('op', 'out'),
       ],
     };
-    // 200 × 1.15 = 230 (floating point: use toBeCloseTo)
-    expect(calculate(graph)['op']).toBeCloseTo(230, 10);
-    expect(calculate(graph)['out']).toBeCloseTo(230, 10);
+    expect(calculate(graph).results['op']).toBeCloseTo(230, 10);
+    expect(calculate(graph).results['out']).toBeCloseTo(230, 10);
   });
 
   it('converts value=0 with isPercentage=true to 1.0 (zero bonus)', () => {
@@ -161,7 +184,7 @@ describe('calcEngine — isPercentage', () => {
       nodes: [pctInputNode('a', 0), outputNode('out')],
       edges: [edge('a', 'out')],
     };
-    expect(calculate(graph)['a']).toBe(1.0);
+    expect(calculate(graph).results['a']).toBe(1.0);
   });
 
   it('converts value=100 with isPercentage=true to 2.0 (double)', () => {
@@ -169,29 +192,17 @@ describe('calcEngine — isPercentage', () => {
       nodes: [pctInputNode('a', 100), outputNode('out')],
       edges: [edge('a', 'out')],
     };
-    expect(calculate(graph)['a']).toBe(2.0);
+    expect(calculate(graph).results['a']).toBe(2.0);
   });
 });
 
-// ─── Test Suite 4: Operator Node Computations ───────────────────────────────
+// ─── Test Suite 4: Operator Node Computations (Math Only) ───────────────────
 
 describe('calcEngine — Operator Node', () => {
   const makeOpGraph = (
     aVal: number,
     bVal: number,
-    op:
-      | '+'
-      | '-'
-      | '*'
-      | '/'
-      | 'max'
-      | 'min'
-      | '>'
-      | '<'
-      | '='
-      | '>='
-      | '<='
-      | '!=',
+    op: '+' | '-' | '*' | '/' | 'max' | 'min',
   ): GraphState => ({
     nodes: [
       inputNode('a', aVal),
@@ -203,23 +214,23 @@ describe('calcEngine — Operator Node', () => {
   });
 
   it('adds A + B', () => {
-    expect(calculate(makeOpGraph(3, 7, '+'))['op']).toBe(10);
+    expect(calculate(makeOpGraph(3, 7, '+')).results['op']).toBe(10);
   });
 
   it('multiplies A * B', () => {
-    expect(calculate(makeOpGraph(4, 5, '*'))['op']).toBe(20);
+    expect(calculate(makeOpGraph(4, 5, '*')).results['op']).toBe(20);
   });
 
-  it('subtracts A - B (non-commutative: handle A first)', () => {
-    expect(calculate(makeOpGraph(10, 3, '-'))['op']).toBe(7);
+  it('subtracts A - B', () => {
+    expect(calculate(makeOpGraph(10, 3, '-')).results['op']).toBe(7);
   });
 
-  it('divides A / B (non-commutative: handle A first)', () => {
-    expect(calculate(makeOpGraph(10, 2, '/'))['op']).toBe(5);
+  it('divides A / B', () => {
+    expect(calculate(makeOpGraph(10, 2, '/')).results['op']).toBe(5);
   });
 
   it('returns 0 for division by zero (safe fallback)', () => {
-    expect(calculate(makeOpGraph(10, 0, '/'))['op']).toBe(0);
+    expect(calculate(makeOpGraph(10, 0, '/')).results['op']).toBe(0);
   });
 
   it('defaults missing handle A to 0', () => {
@@ -227,8 +238,7 @@ describe('calcEngine — Operator Node', () => {
       nodes: [inputNode('b', 5), operatorNode('op', '+'), outputNode('out')],
       edges: [edge('b', 'op', 'b'), edge('op', 'out')],
     };
-    // A = 0 (disconnected), B = 5 → 0 + 5 = 5
-    expect(calculate(graph)['op']).toBe(5);
+    expect(calculate(graph).results['op']).toBe(5);
   });
 
   it('defaults missing handle B to 0', () => {
@@ -236,60 +246,43 @@ describe('calcEngine — Operator Node', () => {
       nodes: [inputNode('a', 8), operatorNode('op', '*'), outputNode('out')],
       edges: [edge('a', 'op', 'a'), edge('op', 'out')],
     };
-    // A = 8, B = 0 (disconnected) → 8 * 0 = 0
-    expect(calculate(graph)['op']).toBe(0);
+    expect(calculate(graph).results['op']).toBe(0);
   });
 
   it('calculates max(A, B)', () => {
-    // max(3, 7) = 7, max(12, -2) = 12
-    expect(calculate(makeOpGraph(3, 7, 'max'))['op']).toBe(7);
-    expect(calculate(makeOpGraph(12, -2, 'max'))['op']).toBe(12);
+    expect(calculate(makeOpGraph(3, 7, 'max')).results['op']).toBe(7);
+    expect(calculate(makeOpGraph(12, -2, 'max')).results['op']).toBe(12);
   });
 
   it('calculates min(A, B)', () => {
-    // min(3, 7) = 3, min(12, -2) = -2
-    expect(calculate(makeOpGraph(3, 7, 'min'))['op']).toBe(3);
-    expect(calculate(makeOpGraph(12, -2, 'min'))['op']).toBe(-2);
+    expect(calculate(makeOpGraph(3, 7, 'min')).results['op']).toBe(3);
+    expect(calculate(makeOpGraph(12, -2, 'min')).results['op']).toBe(-2);
   });
 
-  it('calculates A > B comparison', () => {
-    // 5 > 3 = 1, 3 > 5 = 0, 3 > 3 = 0
-    expect(calculate(makeOpGraph(5, 3, '>'))['op']).toBe(1);
-    expect(calculate(makeOpGraph(3, 5, '>'))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '>'))['op']).toBe(0);
-  });
-
-  it('calculates A < B comparison', () => {
-    // 3 < 5 = 1, 5 < 3 = 0, 3 < 3 = 0
-    expect(calculate(makeOpGraph(3, 5, '<'))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 3, '<'))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '<'))['op']).toBe(0);
-  });
-
-  it('calculates A = B comparison', () => {
-    // 5 = 5 = 1, 5 = 3 = 0
-    expect(calculate(makeOpGraph(5, 5, '='))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 3, '='))['op']).toBe(0);
-  });
-
-  it('calculates A >= B comparison', () => {
-    // 5 >= 3 = 1, 3 >= 5 = 0, 3 >= 3 = 1
-    expect(calculate(makeOpGraph(5, 3, '>='))['op']).toBe(1);
-    expect(calculate(makeOpGraph(3, 5, '>='))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '>='))['op']).toBe(1);
-  });
-
-  it('calculates A <= B comparison', () => {
-    // 3 <= 5 = 1, 5 <= 3 = 0, 3 <= 3 = 1
-    expect(calculate(makeOpGraph(3, 5, '<='))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 3, '<='))['op']).toBe(0);
-    expect(calculate(makeOpGraph(3, 3, '<='))['op']).toBe(1);
-  });
-
-  it('calculates A != B comparison', () => {
-    // 5 != 3 = 1, 5 != 5 = 0
-    expect(calculate(makeOpGraph(5, 3, '!='))['op']).toBe(1);
-    expect(calculate(makeOpGraph(5, 5, '!='))['op']).toBe(0);
+  it('propagates NaN input: NaN + 5 = NaN', () => {
+    // When an IfElse inactive path feeds NaN into an Operator, it should propagate
+    const graph: GraphState = {
+      nodes: [
+        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        inputNode('threshold', 5),
+        inputNode('zero', 0),
+        inputNode('addend', 10),
+        operatorNode('op', '+'), // NaN + 10 = NaN
+        outputNode('out'), // NaN treated as 0 in sum
+      ],
+      edges: [
+        edge('zero', 'ie', 'a'),
+        edge('threshold', 'ie', 'b'),
+        // true output (NaN when 0 > 5 is false) feeds into op as A
+        edge('ie', 'op', 'a', 'true'),
+        edge('addend', 'op', 'b'),
+        edge('op', 'out'),
+      ],
+    };
+    const { results } = calculate(graph);
+    expect(isNaN(results['op'])).toBe(true);
+    // Output node skips NaN → sum = 0
+    expect(results['out']).toBe(0);
   });
 });
 
@@ -317,7 +310,7 @@ describe('calcEngine — Conditional Node', () => {
         edge('cond_node', 'out'),
       ],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['cond_node']).toBe(10);
     expect(results['out']).toBe(10);
   });
@@ -338,7 +331,7 @@ describe('calcEngine — Conditional Node', () => {
         edge('cond_node', 'out'),
       ],
     };
-    const results = calculate(graph);
+    const { results } = calculate(graph);
     expect(results['cond_node']).toBe(20);
     expect(results['out']).toBe(20);
   });
@@ -346,12 +339,384 @@ describe('calcEngine — Conditional Node', () => {
   it('defaults missing handles to zero', () => {
     const graph: GraphState = {
       nodes: [inputNode('t', 99), conditionalNode('cond_node')],
+      edges: [edge('t', 'cond_node', 't')],
+    };
+    const { results } = calculate(graph);
+    expect(results['cond_node']).toBe(0);
+  });
+});
+
+// ─── Test Suite 5: IfElse Node ───────────────────────────────────────────────
+
+describe('calcEngine — IfElse Node', () => {
+  const makeIfelseGraph = (
+    aVal: number,
+    bVal: number,
+    cond: '>' | '<' | '=' | '>=' | '<=' | '!=',
+  ): GraphState => ({
+    nodes: [inputNode('a', aVal), inputNode('b', bVal), ifelseNode('ie', cond)],
+    edges: [edge('a', 'ie', 'a'), edge('b', 'ie', 'b')],
+  });
+
+  it('true output = 1 and false output = NaN when condition is true (5 > 3)', () => {
+    const { results } = calculate(makeIfelseGraph(5, 3, '>'));
+    expect(results['ie:true']).toBe(1);
+    expect(isNaN(results['ie:false'])).toBe(true);
+  });
+
+  it('true output = NaN and false output = 1 when condition is false (3 > 5)', () => {
+    const { results } = calculate(makeIfelseGraph(3, 5, '>'));
+    expect(isNaN(results['ie:true'])).toBe(true);
+    expect(results['ie:false']).toBe(1);
+  });
+
+  it('condition < works', () => {
+    expect(calculate(makeIfelseGraph(3, 5, '<')).results['ie:true']).toBe(1);
+    expect(
+      isNaN(calculate(makeIfelseGraph(5, 3, '<')).results['ie:true']),
+    ).toBe(true);
+  });
+
+  it('condition = works (equal)', () => {
+    expect(calculate(makeIfelseGraph(4, 4, '=')).results['ie:true']).toBe(1);
+    expect(
+      isNaN(calculate(makeIfelseGraph(4, 5, '=')).results['ie:true']),
+    ).toBe(true);
+  });
+
+  it('condition >= works', () => {
+    expect(calculate(makeIfelseGraph(5, 5, '>=')).results['ie:true']).toBe(1);
+    expect(calculate(makeIfelseGraph(6, 5, '>=')).results['ie:true']).toBe(1);
+    expect(
+      isNaN(calculate(makeIfelseGraph(4, 5, '>=')).results['ie:true']),
+    ).toBe(true);
+  });
+
+  it('condition <= works', () => {
+    expect(calculate(makeIfelseGraph(5, 5, '<=')).results['ie:true']).toBe(1);
+    expect(calculate(makeIfelseGraph(4, 5, '<=')).results['ie:true']).toBe(1);
+    expect(
+      isNaN(calculate(makeIfelseGraph(6, 5, '<=')).results['ie:true']),
+    ).toBe(true);
+  });
+
+  it('condition != works', () => {
+    expect(calculate(makeIfelseGraph(5, 3, '!=')).results['ie:true']).toBe(1);
+    expect(
+      isNaN(calculate(makeIfelseGraph(5, 5, '!=')).results['ie:true']),
+    ).toBe(true);
+  });
+
+  it('defaults missing A and B to 0 (The Zero Rule)', () => {
+    const graph: GraphState = {
+      nodes: [ifelseNode('ie', '>')],
+      edges: [],
+    };
+    // 0 > 0 = false
+    const { results } = calculate(graph);
+    expect(isNaN(results['ie:true'])).toBe(true);
+    expect(results['ie:false']).toBe(1);
+  });
+});
+
+// ─── Test Suite 6: Define Node ───────────────────────────────────────────────
+
+describe('calcEngine — Define Node', () => {
+  it('outputs the value from variables[key]', () => {
+    const graph: GraphState = {
+      nodes: [defineNode('def', 'exp', 0), outputNode('out')],
+      edges: [edge('def', 'out')],
+      variables: { exp: 50 },
+    };
+    const { results } = calculate(graph);
+    expect(results['def']).toBe(50);
+    expect(results['out']).toBe(50);
+  });
+
+  it('falls back to NodeData.value when key is not in variables', () => {
+    const graph: GraphState = {
+      nodes: [defineNode('def', 'exp', 42), outputNode('out')],
+      edges: [edge('def', 'out')],
+      variables: {},
+    };
+    const { results } = calculate(graph);
+    expect(results['def']).toBe(42);
+  });
+
+  it('outputs 0 when no variables and NodeData.value is 0 (The Zero Rule)', () => {
+    const graph: GraphState = {
+      nodes: [defineNode('def', 'exp'), outputNode('out')],
+      edges: [edge('def', 'out')],
+    };
+    const { results } = calculate(graph);
+    expect(results['def']).toBe(0);
+  });
+});
+
+// ─── Test Suite 7: Get Node ──────────────────────────────────────────────────
+
+describe('calcEngine — Get Node', () => {
+  it('outputs variables[key] when no trigger edge (always active)', () => {
+    const graph: GraphState = {
+      nodes: [getNode('g', 'exp'), outputNode('out')],
+      edges: [edge('g', 'out')],
+      variables: { exp: 75 },
+    };
+    const { results } = calculate(graph);
+    expect(results['g']).toBe(75);
+    expect(results['out']).toBe(75);
+  });
+
+  it('outputs variables[key] when trigger = 1 (active)', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('trig', 1), getNode('g', 'exp')],
+      edges: [edge('trig', 'g', 'trigger')],
+      variables: { exp: 75 },
+    };
+    const { results } = calculate(graph);
+    expect(results['g']).toBe(75);
+  });
+
+  it('outputs NaN when trigger = NaN (blocked path)', () => {
+    const graph: GraphState = {
+      nodes: [
+        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        inputNode('threshold', 5),
+        inputNode('zero', 0),
+        getNode('g', 'exp'),
+      ],
       edges: [
-        edge('t', 'cond_node', 't'), // cond is missing (0), f is missing (0)
+        edge('zero', 'ie', 'a'),
+        edge('threshold', 'ie', 'b'),
+        edge('ie', 'g', 'trigger', 'true'), // true output (NaN) → Get trigger
+      ],
+      variables: { exp: 99 },
+    };
+    const { results } = calculate(graph);
+    expect(isNaN(results['g'])).toBe(true);
+  });
+
+  it('outputs 0 when key is not in variables', () => {
+    const graph: GraphState = {
+      nodes: [getNode('g', 'unknown')],
+      edges: [],
+      variables: {},
+    };
+    const { results } = calculate(graph);
+    expect(results['g']).toBe(0);
+  });
+});
+
+// ─── Test Suite 8: Set Node ──────────────────────────────────────────────────
+
+describe('calcEngine — Set Node', () => {
+  it('does NOT fire when no trigger is connected (inactive by default)', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('v', 60), setNode('s', 'exp')],
+      edges: [edge('v', 's', 'value')],
+      variables: { exp: 50 },
+    };
+    const { variableUpdates } = calculate(graph);
+    expect('exp' in variableUpdates).toBe(false);
+  });
+
+  it('populates variableUpdates when trigger = 1 and value is valid', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('trig', 1), inputNode('v', 60), setNode('s', 'exp')],
+      edges: [edge('trig', 's', 'trigger'), edge('v', 's', 'value')],
+      variables: { exp: 50 },
+    };
+    const { variableUpdates } = calculate(graph);
+    expect(variableUpdates['exp']).toBe(60);
+  });
+
+  it('does NOT fire when trigger = NaN (blocked path)', () => {
+    const graph: GraphState = {
+      nodes: [
+        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        inputNode('threshold', 5),
+        inputNode('zero', 0),
+        inputNode('v', 60),
+        setNode('s', 'exp'),
+      ],
+      edges: [
+        edge('zero', 'ie', 'a'),
+        edge('threshold', 'ie', 'b'),
+        edge('ie', 's', 'trigger', 'true'), // inactive true path → NaN trigger
+        edge('v', 's', 'value'),
+      ],
+      variables: { exp: 50 },
+    };
+    const { variableUpdates } = calculate(graph);
+    expect('exp' in variableUpdates).toBe(false);
+  });
+
+  it('does NOT fire when trigger is active but value is NaN', () => {
+    const graph: GraphState = {
+      nodes: [
+        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        inputNode('threshold', 5),
+        inputNode('zero', 0),
+        inputNode('trig', 1),
+        setNode('s', 'exp'),
+      ],
+      edges: [
+        edge('zero', 'ie', 'a'),
+        edge('threshold', 'ie', 'b'),
+        edge('trig', 's', 'trigger'),
+        edge('ie', 's', 'value', 'true'), // NaN value from inactive IfElse path
+      ],
+      variables: { exp: 50 },
+    };
+    const { variableUpdates } = calculate(graph);
+    expect('exp' in variableUpdates).toBe(false);
+  });
+
+  it('returns empty variableUpdates when no Set nodes', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('a', 5), outputNode('out')],
+      edges: [edge('a', 'out')],
+    };
+    const { variableUpdates } = calculate(graph);
+    expect(Object.keys(variableUpdates)).toHaveLength(0);
+  });
+});
+
+// ─── Test Suite 9: End-to-End Flow Control ───────────────────────────────────
+
+describe('calcEngine — IfElse flow control (end-to-end)', () => {
+  it('false path: exp=50 > 100 is false → Set(exp) fires, Set(level) skipped', () => {
+    const graph: GraphState = {
+      nodes: [
+        // Comparison inputs
+        defineNode('def_exp', 'exp'),
+        inputNode('thresh', 100),
+        ifelseNode('ie', '>'),
+        // True path: get level, add 1, set level
+        getNode('g_level', 'level'),
+        inputNode('one', 1),
+        operatorNode('op_lvl', '+'),
+        setNode('s_level', 'level'),
+        // False path: get exp, add 10, set exp
+        getNode('g_exp', 'exp'),
+        inputNode('ten', 10),
+        operatorNode('op_exp', '+'),
+        setNode('s_exp', 'exp'),
+      ],
+      edges: [
+        // IfElse inputs
+        edge('def_exp', 'ie', 'a'),
+        edge('thresh', 'ie', 'b'),
+        // True path — Get + Set both gated by IfElse true output
+        edge('ie', 'g_level', 'trigger', 'true'),
+        edge('g_level', 'op_lvl', 'a'),
+        edge('one', 'op_lvl', 'b'),
+        edge('ie', 's_level', 'trigger', 'true'),
+        edge('op_lvl', 's_level', 'value'),
+        // False path — Get + Set both gated by IfElse false output
+        edge('ie', 'g_exp', 'trigger', 'false'),
+        edge('g_exp', 'op_exp', 'a'),
+        edge('ten', 'op_exp', 'b'),
+        edge('ie', 's_exp', 'trigger', 'false'),
+        edge('op_exp', 's_exp', 'value'),
+      ],
+      variables: { exp: 50, level: 1 },
+    };
+
+    const { variableUpdates, results } = calculate(graph);
+
+    // False path fires: exp → 60
+    expect(variableUpdates['exp']).toBe(60);
+    // True path blocked: level NOT updated
+    expect('level' in variableUpdates).toBe(false);
+    // Operator on inactive true path is NaN
+    expect(isNaN(results['op_lvl'])).toBe(true);
+    // Operator on active false path = 50 + 10 = 60
+    expect(results['op_exp']).toBe(60);
+  });
+
+  it('true path: exp=150 > 100 is true → Set(level) fires, Set(exp) skipped', () => {
+    const graph: GraphState = {
+      nodes: [
+        defineNode('def_exp', 'exp'),
+        inputNode('thresh', 100),
+        ifelseNode('ie', '>'),
+        getNode('g_level', 'level'),
+        inputNode('one', 1),
+        operatorNode('op_lvl', '+'),
+        setNode('s_level', 'level'),
+        getNode('g_exp', 'exp'),
+        inputNode('ten', 10),
+        operatorNode('op_exp', '+'),
+        setNode('s_exp', 'exp'),
+      ],
+      edges: [
+        edge('def_exp', 'ie', 'a'),
+        edge('thresh', 'ie', 'b'),
+        edge('ie', 'g_level', 'trigger', 'true'),
+        edge('g_level', 'op_lvl', 'a'),
+        edge('one', 'op_lvl', 'b'),
+        edge('ie', 's_level', 'trigger', 'true'),
+        edge('op_lvl', 's_level', 'value'),
+        edge('ie', 'g_exp', 'trigger', 'false'),
+        edge('g_exp', 'op_exp', 'a'),
+        edge('ten', 'op_exp', 'b'),
+        edge('ie', 's_exp', 'trigger', 'false'),
+        edge('op_exp', 's_exp', 'value'),
+      ],
+      variables: { exp: 150, level: 1 },
+    };
+
+    const { variableUpdates } = calculate(graph);
+
+    // True path fires: level → 2
+    expect(variableUpdates['level']).toBe(2);
+    // False path blocked: exp NOT updated
+    expect('exp' in variableUpdates).toBe(false);
+  });
+});
+
+// ─── Test Suite 10: Constant Node with Trigger ───────────────────────────────
+
+describe('calcEngine — Constant Node with Trigger', () => {
+  it('outputs its value when trigger is not connected (always active)', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('c', 42), outputNode('out')],
+      edges: [edge('c', 'out')],
+    };
+    const { results } = calculate(graph);
+    expect(results['c']).toBe(42);
+  });
+
+  it('outputs its value when trigger = 1 (active)', () => {
+    const graph: GraphState = {
+      nodes: [inputNode('trig', 1), inputNode('c', 42), outputNode('out')],
+      edges: [edge('trig', 'c', 'trigger'), edge('c', 'out')],
+    };
+    const { results } = calculate(graph);
+    expect(results['c']).toBe(42);
+    expect(results['out']).toBe(42);
+  });
+
+  it('outputs NaN when trigger = NaN (blocked path)', () => {
+    const graph: GraphState = {
+      nodes: [
+        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        inputNode('threshold', 5),
+        inputNode('zero', 0),
+        inputNode('c', 99),
+        outputNode('out'),
+      ],
+      edges: [
+        edge('zero', 'ie', 'a'),
+        edge('threshold', 'ie', 'b'),
+        edge('ie', 'c', 'trigger', 'true'), // inactive true → NaN → Constant blocked
+        edge('c', 'out'),
       ],
     };
-    // cond = 0 (false) -> returns f = 0 (disconnected)
-    const results = calculate(graph);
-    expect(results['cond_node']).toBe(0);
+    const { results } = calculate(graph);
+    expect(isNaN(results['c'])).toBe(true);
+    // Output treats NaN as 0
+    expect(results['out']).toBe(0);
   });
 });

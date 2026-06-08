@@ -116,9 +116,16 @@ const CalcNode: React.FC<NodeProps<FlowNodeData>> = ({
 
       {/* Body — handles are placed here to center ports vertically relative to this section */}
       <div className="relative flex-1 flex flex-col items-center justify-center px-3 py-1 gap-1.5 min-h-0 rounded-b-lg">
-        {/* Left target handle — hidden for CONSTANT nodes (output-only; no incoming connections) */}
-        {isOutput && (
+        {/* Left target handle — value input for Result, flow trigger for Constant */}
+        {isOutput ? (
           <Handle type="target" position={Position.Left} style={handleStyle} />
+        ) : (
+          <Handle
+            id="trigger"
+            type="target"
+            position={Position.Left}
+            style={handleStyle}
+          />
         )}
 
         {!isOutput && isEditing ? (

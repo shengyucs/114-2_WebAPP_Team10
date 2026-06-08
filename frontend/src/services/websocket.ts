@@ -27,9 +27,27 @@ export function initWebSocket() {
     console.log('[ws] disconnected');
   });
 
-  socket.on('calc_result', (results: Record<string, number>) => {
-    useStore.getState().setResults(results);
-  });
+  socket.on(
+    'calc_result',
+    (payload: {
+      results: Record<string, number | null>;
+      variableUpdates: Record<string, number>;
+    }) => {
+      const store = useStore.getState();
+
+      // JSON cannot represent NaN — it becomes null. Restore null→NaN so that
+      // downstream formatValue and isNaN checks work correctly.
+      const results: Record<string, number> = {};
+      for (const [k, v] of Object.entries(payload.results)) {
+        results[k] = v === null ? NaN : v;
+      }
+      store.setResults(results);
+
+      // Store variable updates as pending — they are NOT applied automatically.
+      // The user must click "Run" to advance the simulation state.
+      store.setPendingVariableUpdates(payload.variableUpdates);
+    },
+  );
 
   socket.on('calc_error', (err: { message: string }) => {
     console.error('[ws] calc_error:', err.message);
@@ -42,6 +60,22 @@ export function initWebSocket() {
       debounceTimer = setTimeout(emitGraph, 100);
     }
   });
+}
+
+/**
+ * Applies any pending variable updates (from Set nodes in the last calculation)
+ * and triggers one fresh calculation with the updated variable state.
+ * This is the only way Set node effects are committed — prevents infinite loops
+ * from auto-recalculation accumulating variable state on every graph edit.
+ */
+export function runStep() {
+  const store = useStore.getState();
+  const pending = store.pendingVariableUpdates;
+  if (Object.keys(pending).length > 0) {
+    store.applyVariableUpdates(pending);
+    store.clearPendingVariableUpdates();
+  }
+  emitGraph();
 }
 
 export function destroyWebSocket() {

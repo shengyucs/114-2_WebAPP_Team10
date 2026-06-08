@@ -36,8 +36,8 @@ io.on('connection', (socket) => {
 
   socket.on('update_graph', (payload: { graph: GraphState }) => {
     try {
-      const results = calculate(payload.graph);
-      socket.emit('calc_result', results);
+      const { results, variableUpdates } = calculate(payload.graph);
+      socket.emit('calc_result', { results, variableUpdates });
     } catch (err) {
       console.error('[calcEngine] error:', err);
       socket.emit('calc_error', { message: (err as Error).message });

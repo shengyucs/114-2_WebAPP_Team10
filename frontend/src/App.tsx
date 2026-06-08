@@ -44,6 +44,38 @@ function App() {
               headerBg="bg-violet-500"
               borderColor="border-violet-200 hover:border-violet-400"
             />
+            <div className="h-px bg-slate-200 my-1" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">
+              Flow Control
+            </p>
+            <ToolboxItem
+              type="ifelse"
+              label="IfElse"
+              headerBg="bg-red-500"
+              borderColor="border-red-200 hover:border-red-400"
+            />
+            <div className="h-px bg-slate-200 my-1" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">
+              Variables
+            </p>
+            <ToolboxItem
+              type="define"
+              label="Define"
+              headerBg="bg-yellow-400"
+              borderColor="border-yellow-200 hover:border-yellow-400"
+            />
+            <ToolboxItem
+              type="get"
+              label="Get"
+              headerBg="bg-teal-500"
+              borderColor="border-teal-200 hover:border-teal-400"
+            />
+            <ToolboxItem
+              type="set"
+              label="Set"
+              headerBg="bg-orange-500"
+              borderColor="border-orange-200 hover:border-orange-400"
+            />
           </div>
         </Sidebar>
 

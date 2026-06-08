@@ -9,6 +9,7 @@ import ReactFlow, {
 } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import { wouldIntroduceCycle } from '../utils/cycleDetection';
+import { runStep } from '../services/websocket';
 import LZString from 'lz-string';
 import 'reactflow/dist/style.css';
 import { useStore } from '../store/useStore';
@@ -17,6 +18,10 @@ import { GoogleDriveService } from '../services/googleDrive';
 import CalcNode from './nodes/CalcNode';
 import OperatorNode from './nodes/OperatorNode';
 import ConditionalNode from './nodes/ConditionalNode';
+import IfElseNode from './nodes/IfElseNode';
+import DefineNode from './nodes/DefineNode';
+import GetNode from './nodes/GetNode';
+import SetNode from './nodes/SetNode';
 import SaveDialog from './features/SaveDialog';
 import LoadDialog from './features/LoadDialog';
 import type { GraphState } from '../../../shared/types';
@@ -27,6 +32,10 @@ const nodeTypes = {
   output: CalcNode,
   operator: OperatorNode,
   conditional: ConditionalNode,
+  ifelse: IfElseNode,
+  define: DefineNode,
+  get: GetNode,
+  set: SetNode,
 };
 
 const Canvas: React.FC = () => {
@@ -41,7 +50,10 @@ const Canvas: React.FC = () => {
     setEdges,
     getGraphState,
     layoutNodes,
+    pendingVariableUpdates,
   } = useStore();
+
+  const hasPending = Object.keys(pendingVariableUpdates).length > 0;
 
   const { isConnected, userInfo, disconnect, connect } = useGoogleStore();
   const [isSaveOpen, setIsSaveOpen] = useState(false);
@@ -55,7 +67,18 @@ const Canvas: React.FC = () => {
         (nodeData, index) => {
           const col = index % 4;
           const row = Math.floor(index / 4);
-          const { id, type, label, value, isPercentage, operator } = nodeData;
+          const {
+            id,
+            type,
+            label,
+            value,
+            isPercentage,
+            operator,
+            condition,
+            variableKey,
+          } = nodeData;
+          const isSmall = type === 'operator';
+          const isMedium = type === 'conditional' || type === 'ifelse';
           return {
             id,
             type,
@@ -65,12 +88,12 @@ const Canvas: React.FC = () => {
               value,
               isPercentage,
               ...(operator !== undefined ? { operator } : {}),
+              ...(condition !== undefined ? { condition } : {}),
+              ...(variableKey !== undefined ? { variableKey } : {}),
             },
             style: {
-              width:
-                type === 'operator' ? 56 : type === 'conditional' ? 70 : 140,
-              height:
-                type === 'operator' ? 56 : type === 'conditional' ? 90 : 75,
+              width: isSmall ? 56 : isMedium ? 80 : 140,
+              height: isSmall ? 56 : isMedium || type === 'set' ? 90 : 75,
             },
           };
         },
@@ -228,6 +251,10 @@ const Canvas: React.FC = () => {
             if (n.type === 'output') return '#10b981';
             if (n.type === 'operator') return '#f59e0b';
             if (n.type === 'conditional') return '#8b5cf6';
+            if (n.type === 'ifelse') return '#ef4444';
+            if (n.type === 'define') return '#eab308';
+            if (n.type === 'get') return '#14b8a6';
+            if (n.type === 'set') return '#f97316';
             return '#d1d9e6';
           }}
           nodeColor={(n) => {
@@ -235,6 +262,10 @@ const Canvas: React.FC = () => {
             if (n.type === 'output') return '#d1fae5';
             if (n.type === 'operator') return '#fef3c7';
             if (n.type === 'conditional') return '#ede9fe';
+            if (n.type === 'ifelse') return '#fee2e2';
+            if (n.type === 'define') return '#fef9c3';
+            if (n.type === 'get') return '#ccfbf1';
+            if (n.type === 'set') return '#ffedd5';
             return '#fff';
           }}
           maskColor="rgba(240, 244, 248, 0.6)"
@@ -249,6 +280,22 @@ const Canvas: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px]"
           >
             Auto Layout
+          </button>
+
+          {/* Run button — applies pending Set-node variable updates and triggers one recalculation */}
+          <button
+            onClick={runStep}
+            className={`relative flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold rounded-xl shadow-md transition-all duration-150 hover:-translate-y-[1px] ${
+              hasPending
+                ? 'text-white bg-emerald-500 hover:bg-emerald-600 border border-emerald-400'
+                : 'text-slate-700 bg-white/90 backdrop-blur-sm hover:bg-slate-50 border border-slate-200'
+            }`}
+            title="Apply Set node updates and recalculate (one simulation step)"
+          >
+            Run
+            {hasPending && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white" />
+            )}
           </button>
 
           {isConnected ? (
