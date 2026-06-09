@@ -173,8 +173,7 @@ export const useStore = create<StoreState>((set, get) => ({
       },
       style: {
         width: isSmall ? 56 : isMedium ? 80 : 140,
-        // Set node is 90px tall to accommodate two left handles (trigger + value)
-        height: isSmall ? 56 : isMedium || type === 'set' ? 90 : 75,
+        height: isSmall ? 56 : isMedium ? 90 : 75,
       },
     };
     set({ nodes: [...get().nodes, newNode] });
@@ -262,8 +261,7 @@ export const useStore = create<StoreState>((set, get) => ({
     // Helper: Determine node height based on its type
     const getNodeHeight = (type: string): number => {
       if (type === 'operator') return 56;
-      if (type === 'conditional' || type === 'ifelse' || type === 'set')
-        return 90;
+      if (type === 'conditional' || type === 'ifelse') return 90;
       return 75;
     };
 
@@ -301,8 +299,6 @@ export const useStore = create<StoreState>((set, get) => ({
         return 0.5;
       }
       if (type === 'set') {
-        if (handleId === 'trigger') return 0.3;
-        if (handleId === 'value') return 0.7;
         return 0.5;
       }
       return 0.5;

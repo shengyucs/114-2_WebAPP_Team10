@@ -61,30 +61,13 @@ const SetNode: React.FC<NodeProps<FlowNodeData>> = ({ id, data, selected }) => {
 
       {/* Body */}
       <div className="relative flex-1 flex flex-col items-center justify-center px-3 py-1 gap-0.5 min-h-0 rounded-b-lg">
-        {/* T — trigger handle (top-left, 30%) */}
-        <Handle
-          id="trigger"
-          type="target"
-          position={Position.Left}
-          style={{ ...handleStyle, top: '30%' }}
-        />
-        {/* V — value handle (bottom-left, 70%) */}
+        {/* V — value handle: Set fires when this is non-NaN */}
         <Handle
           id="value"
           type="target"
           position={Position.Left}
-          style={{ ...handleStyle, top: '70%' }}
+          style={{ ...handleStyle, top: '50%' }}
         />
-
-        {/* Handle labels */}
-        <div className="absolute left-3 top-0 h-full flex flex-col justify-around py-1 pointer-events-none">
-          <span className="text-[8px] font-bold text-orange-300 leading-none">
-            T
-          </span>
-          <span className="text-[8px] font-bold text-orange-300 leading-none">
-            V
-          </span>
-        </div>
 
         <span className="text-[10px] text-orange-600 font-semibold truncate max-w-full select-none">
           {key || <span className="italic text-slate-400">no key</span>}

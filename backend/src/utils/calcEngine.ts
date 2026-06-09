@@ -215,21 +215,12 @@ export function calculate(graph: GraphState): CalcResult {
       const key = node.variableKey ?? '';
       results[id] = key in variables ? variables[key] : 0;
     } else if (node.type === 'set') {
-      // Set node is inactive by default — requires an active trigger to execute.
-      // This prevents accidental variable writes when building the graph.
-      const triggerEdge = incoming.find((e) => e.targetHandle === 'trigger');
-      if (!triggerEdge) {
-        results[id] = 0;
-        continue;
-      }
-      const triggerVal = resolveSource(triggerEdge, results);
-      if (isNaN(triggerVal)) {
-        results[id] = 0;
-        continue;
-      }
-
       const valueEdge = incoming.find((e) => e.targetHandle === 'value');
-      const value = valueEdge ? resolveSource(valueEdge, results) : 0;
+      if (!valueEdge) {
+        results[id] = 0;
+        continue;
+      }
+      const value = resolveSource(valueEdge, results);
       const key = node.variableKey ?? '';
       if (key && !isNaN(value)) {
         variableUpdates[key] = value;

@@ -508,42 +508,46 @@ describe('calcEngine — Get Node', () => {
 });
 
 // ─── Test Suite 8: Set Node ──────────────────────────────────────────────────
+//
+// Set fires when value input is non-NaN. No trigger/block handle.
+// IfElse flow control works through NaN propagation: inactive path outputs NaN
+// which propagates through downstream Get/Operator nodes, arriving at Set as
+// NaN — preventing the write naturally.
 
 describe('calcEngine — Set Node', () => {
-  it('does NOT fire when no trigger is connected (inactive by default)', () => {
+  it('fires when value is connected and non-NaN', () => {
     const graph: GraphState = {
       nodes: [inputNode('v', 60), setNode('s', 'exp')],
       edges: [edge('v', 's', 'value')],
       variables: { exp: 50 },
     };
     const { variableUpdates } = calculate(graph);
-    expect('exp' in variableUpdates).toBe(false);
-  });
-
-  it('populates variableUpdates when trigger = 1 and value is valid', () => {
-    const graph: GraphState = {
-      nodes: [inputNode('trig', 1), inputNode('v', 60), setNode('s', 'exp')],
-      edges: [edge('trig', 's', 'trigger'), edge('v', 's', 'value')],
-      variables: { exp: 50 },
-    };
-    const { variableUpdates } = calculate(graph);
     expect(variableUpdates['exp']).toBe(60);
   });
 
-  it('does NOT fire when trigger = NaN (blocked path)', () => {
+  it('does NOT fire when no value edge is connected', () => {
+    const graph: GraphState = {
+      nodes: [setNode('s', 'exp')],
+      edges: [],
+      variables: { exp: 50 },
+    };
+    const { variableUpdates } = calculate(graph);
+    expect('exp' in variableUpdates).toBe(false);
+  });
+
+  it('does NOT fire when value is NaN (inactive IfElse path propagated through)', () => {
+    // 0 > 5 = false → true output = NaN → NaN flows into Set value → skipped
     const graph: GraphState = {
       nodes: [
-        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
+        ifelseNode('ie', '>'),
         inputNode('threshold', 5),
         inputNode('zero', 0),
-        inputNode('v', 60),
         setNode('s', 'exp'),
       ],
       edges: [
         edge('zero', 'ie', 'a'),
         edge('threshold', 'ie', 'b'),
-        edge('ie', 's', 'trigger', 'true'), // inactive true path → NaN trigger
-        edge('v', 's', 'value'),
+        edge('ie', 's', 'value', 'true'),
       ],
       variables: { exp: 50 },
     };
@@ -551,25 +555,24 @@ describe('calcEngine — Set Node', () => {
     expect('exp' in variableUpdates).toBe(false);
   });
 
-  it('does NOT fire when trigger is active but value is NaN', () => {
+  it('fires when value arrives via active IfElse path (non-NaN)', () => {
+    // 5 > 0 = true → true output = 1 → flows into Set value → fires with value 1
     const graph: GraphState = {
       nodes: [
-        ifelseNode('ie', '>'), // 0 > 5 = false → true output = NaN
-        inputNode('threshold', 5),
+        ifelseNode('ie', '>'),
+        inputNode('five', 5),
         inputNode('zero', 0),
-        inputNode('trig', 1),
-        setNode('s', 'exp'),
+        setNode('s', 'flag'),
       ],
       edges: [
-        edge('zero', 'ie', 'a'),
-        edge('threshold', 'ie', 'b'),
-        edge('trig', 's', 'trigger'),
-        edge('ie', 's', 'value', 'true'), // NaN value from inactive IfElse path
+        edge('five', 'ie', 'a'),
+        edge('zero', 'ie', 'b'),
+        edge('ie', 's', 'value', 'true'),
       ],
-      variables: { exp: 50 },
+      variables: { flag: 0 },
     };
     const { variableUpdates } = calculate(graph);
-    expect('exp' in variableUpdates).toBe(false);
+    expect(variableUpdates['flag']).toBe(1);
   });
 
   it('returns empty variableUpdates when no Set nodes', () => {
@@ -583,41 +586,38 @@ describe('calcEngine — Set Node', () => {
 });
 
 // ─── Test Suite 9: End-to-End Flow Control ───────────────────────────────────
+//
+// No trigger or block handles needed. IfElse inactive output = NaN, which
+// propagates through Get (trigger) → Operator → Set value, preventing the write.
 
 describe('calcEngine — IfElse flow control (end-to-end)', () => {
   it('false path: exp=50 > 100 is false → Set(exp) fires, Set(level) skipped', () => {
     const graph: GraphState = {
       nodes: [
-        // Comparison inputs
         defineNode('def_exp', 'exp'),
         inputNode('thresh', 100),
         ifelseNode('ie', '>'),
-        // True path: get level, add 1, set level
         getNode('g_level', 'level'),
         inputNode('one', 1),
         operatorNode('op_lvl', '+'),
         setNode('s_level', 'level'),
-        // False path: get exp, add 10, set exp
         getNode('g_exp', 'exp'),
         inputNode('ten', 10),
         operatorNode('op_exp', '+'),
         setNode('s_exp', 'exp'),
       ],
       edges: [
-        // IfElse inputs
         edge('def_exp', 'ie', 'a'),
         edge('thresh', 'ie', 'b'),
-        // True path — Get + Set both gated by IfElse true output
+        // True path — Get gated by true output (NaN when false → propagates to Set)
         edge('ie', 'g_level', 'trigger', 'true'),
         edge('g_level', 'op_lvl', 'a'),
         edge('one', 'op_lvl', 'b'),
-        edge('ie', 's_level', 'trigger', 'true'),
         edge('op_lvl', 's_level', 'value'),
-        // False path — Get + Set both gated by IfElse false output
+        // False path — Get gated by false output (NaN when true → propagates to Set)
         edge('ie', 'g_exp', 'trigger', 'false'),
         edge('g_exp', 'op_exp', 'a'),
         edge('ten', 'op_exp', 'b'),
-        edge('ie', 's_exp', 'trigger', 'false'),
         edge('op_exp', 's_exp', 'value'),
       ],
       variables: { exp: 50, level: 1 },
@@ -625,13 +625,9 @@ describe('calcEngine — IfElse flow control (end-to-end)', () => {
 
     const { variableUpdates, results } = calculate(graph);
 
-    // False path fires: exp → 60
     expect(variableUpdates['exp']).toBe(60);
-    // True path blocked: level NOT updated
     expect('level' in variableUpdates).toBe(false);
-    // Operator on inactive true path is NaN
     expect(isNaN(results['op_lvl'])).toBe(true);
-    // Operator on active false path = 50 + 10 = 60
     expect(results['op_exp']).toBe(60);
   });
 
@@ -656,12 +652,10 @@ describe('calcEngine — IfElse flow control (end-to-end)', () => {
         edge('ie', 'g_level', 'trigger', 'true'),
         edge('g_level', 'op_lvl', 'a'),
         edge('one', 'op_lvl', 'b'),
-        edge('ie', 's_level', 'trigger', 'true'),
         edge('op_lvl', 's_level', 'value'),
         edge('ie', 'g_exp', 'trigger', 'false'),
         edge('g_exp', 'op_exp', 'a'),
         edge('ten', 'op_exp', 'b'),
-        edge('ie', 's_exp', 'trigger', 'false'),
         edge('op_exp', 's_exp', 'value'),
       ],
       variables: { exp: 150, level: 1 },
@@ -669,9 +663,7 @@ describe('calcEngine — IfElse flow control (end-to-end)', () => {
 
     const { variableUpdates } = calculate(graph);
 
-    // True path fires: level → 2
     expect(variableUpdates['level']).toBe(2);
-    // False path blocked: exp NOT updated
     expect('exp' in variableUpdates).toBe(false);
   });
 });
