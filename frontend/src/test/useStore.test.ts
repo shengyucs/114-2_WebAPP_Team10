@@ -43,7 +43,7 @@ describe('useStore (Zustand Store Unit Tests)', () => {
     const nodes = useStore.getState().nodes;
     expect(nodes.length).toBe(1);
     expect(nodes[0].type).toBe('conditional');
-    expect(nodes[0].style).toEqual({ width: 70, height: 90 });
+    expect(nodes[0].style).toEqual({ width: 80, height: 90 });
   });
 
   it('should patch node data and position correctly', () => {

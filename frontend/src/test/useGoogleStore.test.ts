@@ -173,6 +173,7 @@ describe('useGoogleStore (Zustand Unit Tests)', () => {
         },
       ],
       edges: [],
+      variables: {},
     });
 
     expect(useGoogleStore.getState().cloudFiles.length).toBe(1);
